@@ -1,0 +1,454 @@
+{
+	"info": {
+		"_postman_id": "super-admin-collection",
+		"name": "POS System API",
+		"description": "A comprehensive Point of Sale system API with role-based access control. This collection includes endpoints for Super Admin, Admin, Inventory Manager, and Cashier roles.\n\n## Authentication\nAll protected endpoints require a Bearer token in the Authorization header. The token can be obtained from the login endpoint.\n\n## Base URL\nUse the `{{base_url}}` variable for all requests. Default: `http://localhost:8000`\n\n## Role Hierarchy\n1. Super Admin: Full system access\n2. Admin: Business-level management\n3. Inventory Manager: Inventory and category management\n4. Cashier: Sales and customer management",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"description": "Authentication endpoints for user registration and login",
+			"item": [
+				{
+					"name": "Register Regular User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"password\": \"password123\",\n    \"c_password\": \"password123\",\n    \"phone\": \"+1234567890\",\n    \"address\": \"123 Main St\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register"]
+						},
+						"description": "Register a new regular user. Business and branch IDs are optional for regular users."
+					}
+				},
+				{
+					"name": "Register Super Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Super Admin\",\n    \"email\": \"superadmin@example.com\",\n    \"password\": \"password123\",\n    \"c_password\": \"password123\",\n    \"phone\": \"+1234567890\",\n    \"address\": \"123 Admin St\",\n    \"role\": \"super_admin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register"]
+						},
+						"description": "Register a new super admin user. Only existing super admins can create new super admin accounts."
+					}
+				},
+				{
+					"name": "Super Admin Create Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Admin User\",\n    \"email\": \"admin@example.com\",\n    \"password\": \"password123\",\n    \"c_password\": \"password123\",\n    \"phone\": \"+1234567890\",\n    \"address\": \"123 Admin St\",\n    \"role\": \"admin\",\n    \"business_id\": \"{{business_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register-admin",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register-admin"]
+						},
+						"description": "Create a new admin user. Requires super admin authorization."
+					}
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Login to get authentication token. Returns JWT token for protected endpoints."
+					}
+				}
+			]
+		},
+		{
+			"name": "Super Admin Endpoints",
+			"description": "Endpoints accessible only to super admin users",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/super-admin/users",
+							"host": ["{{base_url}}"],
+							"path": ["api", "super-admin", "users"]
+						},
+						"description": "Get a list of all users in the system. Requires super admin authorization."
+					}
+				},
+				{
+					"name": "Get User Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/super-admin/users/{id}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "super-admin", "users", "{id}"]
+						},
+						"description": "Get detailed information about a specific user. Requires super admin authorization."
+					}
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Name\",\n    \"email\": \"updated@example.com\",\n    \"phone\": \"+9876543210\",\n    \"address\": \"456 New St\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/super-admin/users/{id}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "super-admin", "users", "{id}"]
+						},
+						"description": "Update user information. Requires super admin authorization."
+					}
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/super-admin/users/{id}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "super-admin", "users", "{id}"]
+						},
+						"description": "Delete a user. Requires super admin authorization."
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin Endpoints",
+			"description": "Endpoints accessible to admin users",
+			"item": [
+				{
+					"name": "Create Business",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"My Business\",\n    \"description\": \"Business description\",\n    \"address\": \"123 Business St\",\n    \"phone\": \"+1234567890\",\n    \"email\": \"business@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/businesses",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "businesses"]
+						},
+						"description": "Create a new business. Requires admin authorization."
+					}
+				},
+				{
+					"name": "Create Branch",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Main Branch\",\n    \"address\": \"123 Branch St\",\n    \"phone\": \"+1234567890\",\n    \"business_id\": \"{{business_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/branches",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "branches"]
+						},
+						"description": "Create a new branch for a business. Requires admin authorization."
+					}
+				}
+			]
+		},
+		{
+			"name": "Inventory Manager Endpoints",
+			"description": "Endpoints accessible to inventory manager users",
+			"item": [
+				{
+					"name": "Create Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Electronics\",\n    \"description\": \"Electronic products\",\n    \"business_id\": \"{{business_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/inventory-manager/categories",
+							"host": ["{{base_url}}"],
+							"path": ["api", "inventory-manager", "categories"]
+						},
+						"description": "Create a new product category. Requires inventory manager authorization."
+					}
+				},
+				{
+					"name": "Create Inventory Item",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Product Name\",\n    \"description\": \"Product description\",\n    \"sku\": \"SKU123\",\n    \"barcode\": \"BARCODE123\",\n    \"quantity\": 100,\n    \"unit_price\": 99.99,\n    \"cost_price\": 50.00,\n    \"reorder_level\": 10,\n    \"category_id\": \"category_id_here\",\n    \"business_id\": \"{{business_id}}\",\n    \"branch_id\": \"{{branch_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/inventory-manager/inventory",
+							"host": ["{{base_url}}"],
+							"path": ["api", "inventory-manager", "inventory"]
+						},
+						"description": "Create a new inventory item. Requires inventory manager authorization."
+					}
+				}
+			]
+		},
+		{
+			"name": "Cashier Endpoints",
+			"description": "Endpoints accessible to cashier users",
+			"item": [
+				{
+					"name": "Create Sale",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer_id\": \"customer_id_here\",\n    \"items\": [\n        {\n            \"inventory_id\": \"inventory_id_here\",\n            \"quantity\": 2,\n            \"unit_price\": 99.99,\n            \"discount_amount\": 0,\n            \"tax_amount\": 10.00\n        }\n    ],\n    \"payment_method\": \"cash\",\n    \"notes\": \"Customer requested gift wrapping\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/cashier/sales",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cashier", "sales"]
+						},
+						"description": "Create a new sale. Requires cashier authorization."
+					}
+				},
+				{
+					"name": "Get Sales",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/cashier/sales",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cashier", "sales"]
+						},
+						"description": "Get a list of sales. Requires cashier authorization."
+					}
+				},
+				{
+					"name": "Get Sale Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/cashier/sales/{id}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cashier", "sales", "{id}"]
+						},
+						"description": "Get detailed information about a specific sale. Requires cashier authorization."
+					}
+				},
+				{
+					"name": "Get Inventory",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/cashier/inventory",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cashier", "inventory"]
+						},
+						"description": "Get available inventory items. Requires cashier authorization."
+					}
+				},
+				{
+					"name": "Get Customers",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/cashier/customers",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cashier", "customers"]
+						},
+						"description": "Get a list of customers. Requires cashier authorization."
+					}
+				},
+				{
+					"name": "Get Today's Summary",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/cashier/summary",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cashier", "summary"]
+						},
+						"description": "Get today's sales summary. Requires cashier authorization."
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "your_bearer_token_here",
+			"type": "string"
+		},
+		{
+			"key": "business_id",
+			"value": "your_business_id_here",
+			"type": "string"
+		},
+		{
+			"key": "branch_id",
+			"value": "your_branch_id_here",
+			"type": "string"
+		}
+	]
+} 
