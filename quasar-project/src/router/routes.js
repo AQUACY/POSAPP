@@ -1,0 +1,190 @@
+const routes = [
+  {
+    path: '/',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { path: '', component: () => import('pages/IndexPage.vue') }
+    ]
+  },
+  {
+    path: '/business/:businessId',
+    component: () => import('layouts/AdminLayout.vue'),
+    meta: { requiresAuth: true, role: 'admin' },
+    children: [
+      { path: '', redirect: to => `/business/${to.params.businessId}/dashboard` },
+      { path: 'dashboard', component: () => import('pages/admin/Dashboard.vue') },
+
+      {
+        path: 'branches',
+        component: () => import('pages/admin/Branches.vue'),
+      },
+      {
+        path: 'branch/:branchId/inventory',
+        component: () => import('pages/admin/BranchInventory.vue'),
+      },
+      {
+        path: 'branch/:branchId/staff',
+        component: () => import('pages/admin/BranchStaff.vue'),
+      },
+      { path: 'warehouses', component: () => import('pages/admin/Warehouses.vue') },
+      { path: 'inventory', component: () => import('pages/admin/Inventory.vue') },
+      { path: 'categories', component: () => import('pages/admin/Categories.vue') },
+      { path: 'sales', component: () => import('pages/admin/Sales.vue') },
+      { path: 'refunds', component: () => import('pages/admin/Refunds.vue') },
+      { path: 'reports', component: () => import('pages/admin/Reports.vue') }
+    ]
+  },
+  {
+    path: '/auth',
+    component: () => import('layouts/AuthLayout.vue'),
+    children: [
+      {
+        path: 'login',
+        name: 'login',
+        component: () => import('pages/auth/LoginPage.vue')
+      },
+      {
+        path: 'register',
+        name: 'register',
+        component: () => import('pages/auth/RegisterPage.vue')
+      }
+    ]
+  },
+  // Cashier routes
+  {
+    path: '/pos/:businessId/:branchId',
+    component: () => import('layouts/CashierLayout.vue'),
+    meta: { requiresAuth: true, role: 'cashier' },
+    children: [
+      {
+        path: '',
+        name: 'pos',
+        component: () => import('pages/pos/POSPage.vue')
+      },
+      {
+        path: 'pending',
+        name: 'pending-sales',
+        component: () => import('pages/pos/PendingSalesPage.vue')
+      },
+      {
+        path: 'payment/:saleId',
+        name: 'payment',
+        component: () => import('pages/pos/PaymentPage.vue')
+      },
+      {
+        path: 'history',
+        name: 'sales-history',
+        component: () => import('pages/pos/SalesHistoryPage.vue')
+      },
+      {
+        path: 'refunds',
+        name: 'refunds',
+        component: () => import('pages/pos/RefundHistoryPage.vue')
+      }
+    ]
+  },
+  // Inventory Manager routes
+  // {
+  //   path: '/inventory/:businessId/:branchId',
+  //   component: () => import('layouts/InventoryManagerLayout.vue'),
+  //   meta: { requiresAuth: true, role: 'inventory_manager' },
+  //   children: [
+  //     {
+  //       path: '',
+  //       name: 'inventory',
+  //       component: () => import('pages/inventory/InventoryPage.vue')
+  //     },
+  //     {
+  //       path: 'reports',
+  //       name: 'inventory-reports',
+  //       component: () => import('pages/inventory/ReportsPage.vue')
+  //     }
+  //   ]
+  // },
+  // Branch Manager routes
+  {
+    path: '/branch/:businessId/:branchId',
+    component: () => import('layouts/BranchManagerLayout.vue'),
+    meta: { requiresAuth: true, role: 'branch_manager' },
+    children: [
+      {
+        path: '',
+        redirect: to => `/branch/${to.params.businessId}/${to.params.branchId}/dashboard`
+      },
+      {
+        path: 'dashboard',
+        component: () => import('pages/branch-manager/Dashboard.vue')
+      },
+      {
+        path: 'inventory',
+        component: () => import('pages/branch-manager/Inventory.vue')
+      },
+      {
+        path: 'sales',
+        component: () => import('pages/branch-manager/Sales.vue')
+      },
+      {
+        path: 'customers',
+        component: () => import('pages/branch-manager/Customers.vue')
+      },
+      {
+        path: 'staff',
+        component: () => import('pages/branch-manager/Staff.vue')
+      },
+      {
+        path: 'reports',
+        component: () => import('pages/branch-manager/Reports.vue')
+      },
+      {
+        path: 'settings',
+        component: () => import('pages/branch-manager/Settings.vue')
+      },
+      {
+        path: 'stock-requests',
+        name: 'branch-stock-requests',
+        component: () => import('pages/branch-manager/StockRequests.vue')
+      }
+    ]
+  },
+  // Business Admin routes
+  // {
+  //   path: '/business/:businessId',
+  //   component: () => import('layouts/BusinessAdminLayout.vue'),
+  //   meta: { requiresAuth: true, role: 'business_admin' },
+  //   children: [
+  //     {
+  //       path: 'dashboard',
+  //       name: 'business-dashboard',
+  //       component: () => import('pages/business/DashboardPage.vue')
+  //     },
+  //     {
+  //       path: 'branches',
+  //       name: 'business-branches',
+  //       component: () => import('pages/business/BranchesPage.vue')
+  //     },
+  //     {
+  //       path: 'users',
+  //       name: 'business-users',
+  //       component: () => import('pages/business/UsersPage.vue')
+  //     },
+  //     {
+  //       path: 'reports',
+  //       name: 'business-reports',
+  //       component: () => import('pages/business/ReportsPage.vue')
+  //     },
+  //     {
+  //       path: 'settings',
+  //       name: 'business-settings',
+  //       component: () => import('pages/business/SettingsPage.vue')
+  //     }
+  //   ]
+  // },
+  // Always leave this as last one,
+  // but you can also remove it
+  {
+    path: '/:catchAll(.*)*',
+    component: () => import('pages/ErrorNotFound.vue')
+  }
+]
+
+export default routes
