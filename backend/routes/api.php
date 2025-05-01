@@ -138,7 +138,9 @@ Route::middleware(['auth:api'])->group(function () {
         Route::put('admin/refunds/{id}', [RefundController::class, 'updateRefund']);
         Route::delete('admin/refunds/{id}', [RefundController::class, 'deleteRefund']);
         Route::post('admin/refunds', [RefundController::class, 'store']);
-        Route::post('admin/refunds/{refund}/approve', [RefundController::class, 'approve']);
+        Route::get('admin/refunds/branch/{id}', [RefundController::class, 'getRefundforBranch']);
+        Route::get('admin/refunds/business/{id}', [RefundController::class, 'getRefundforBusiness']);
+        Route::post('admin/refunds/business/{businessId}/{refundId}/approve', [RefundController::class, 'approve']);
         
         // Reports
         Route::get('/businesses/{id}/performance', [AdminController::class, 'getBusinessPerformance']);
@@ -224,6 +226,7 @@ Route::middleware(['auth:api'])->group(function () {
             // Refund routes
             Route::get('cashier/refunds', [RefundController::class, 'index']);
             Route::post('cashier/refunds', [RefundController::class, 'store']);
+            Route::get('cashier/refunds/{id}', [RefundController::class, 'show']);
         });
     });
 

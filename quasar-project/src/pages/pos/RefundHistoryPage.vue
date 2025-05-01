@@ -322,7 +322,9 @@ const submitApproval = async () => {
     loading.value = true
     await posService.approveRefund(selectedRefund.value.id, {
       approved: isApproving.value,
-      rejection_reason: rejectionReason.value
+      rejection_reason: rejectionReason.value,
+      branch_id: selectedRefund.value.branch_id,
+      business_id: selectedRefund.value.business_id
     })
 
     $q.notify({

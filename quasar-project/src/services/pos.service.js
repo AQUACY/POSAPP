@@ -82,5 +82,18 @@ export const posService = {
 
   async getUnreadNotificationCount() {
     return await api.get('/notifications/unread-count')
+  },
+
+  async createRefund(saleId, items, reason) {
+    try {
+      const response = await api.post('/refunds', {
+        saleId,
+        items,
+        reason
+      })
+      return response.data
+    } catch (error) {
+      throw error.response?.data || error
+    }
   }
 } 

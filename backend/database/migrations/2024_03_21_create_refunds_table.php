@@ -10,13 +10,15 @@ return new class extends Migration
     {
         Schema::create('refunds', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('sale_id')->constrained('sales')->onDelete('cascade');
-            $table->foreignId('user_id')->constrained('users'); // User who processed the refund
-            $table->foreignId('approved_by')->nullable()->constrained('users'); // Manager who approved
+            $table->foreignId('business_id')->constrained()->onDelete('cascade');
+            $table->foreignId('branch_id')->constrained()->onDelete('cascade');
+            $table->foreignId('sale_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
             $table->decimal('total_amount', 10, 2);
-            $table->text('reason');
-            $table->enum('status', ['pending', 'approved', 'rejected', 'completed'])->default('pending');
-            $table->text('rejection_reason')->nullable();
+            $table->string('reason');
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->string('rejection_reason')->nullable();
             $table->timestamps();
         });
 

@@ -11,13 +11,15 @@ use App\Notifications\RefundRequestNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Middleware\RoleMiddleware;
+use Carbon\Carbon;
 
 class RefundController extends Controller
 {
     public function __construct()
     {
         $this->middleware('auth:api');
-        $this->middleware('role:branch_manager,admin')->only(['approve']);
+        $this->middleware(RoleMiddleware::class . ':admin,branch_manager')->only(['approve']);
     }
 
     public function store(Request $request)
@@ -59,6 +61,8 @@ class RefundController extends Controller
             $refund = Refund::create([
                 'sale_id' => $sale->id,
                 'user_id' => Auth::id(),
+                'business_id' => $sale->business_id,
+                'branch_id' => $sale->branch_id,
                 'total_amount' => 0,
                 'reason' => $request->reason,
                 'status' => 'pending'
@@ -110,12 +114,21 @@ class RefundController extends Controller
         }
     }
 
-    public function approve(Request $request, Refund $refund)
+    public function approve(Request $request, $businessId, $refundId)
     {
         $request->validate([
             'approved' => 'required|boolean',
             'rejection_reason' => 'required_if:approved,false|string'
         ]);
+
+        $refund = Refund::where('business_id', $businessId)
+            ->where('id', $refundId)
+            ->firstOrFail();
+
+        // Check if user has permission for this business
+        if (Auth::user()->role !== 'admin' && Auth::user()->business_id !== $businessId) {
+            return response()->json(['message' => 'Unauthorized. You do not have permission for this business.'], 403);
+        }
 
         try {
             DB::beginTransaction();
@@ -165,6 +178,87 @@ class RefundController extends Controller
 
         return response()->json($refunds);
     }
+
+    
+    // getrefund for branch manager 
+    public function getRefundForBranchManager()
+    {
+        $refunds = Refund::with(['sale', 'user', 'approver', 'items.inventory'])
+            ->where('status', 'pending')
+            ->latest()
+            ->paginate(10);
+
+        return response()->json($refunds);
+    }
+
+    // get refund for branch
+    public function getRefundforBranch(Request $request)
+    {
+        $refunds = Refund::with(['sale', 'user', 'approver', 'items.inventory'])
+            ->where('branch_id', $request->branch_id)
+            ->when($request->status, function ($query, $status) {
+                return $query->where('status', $status);
+            }, function ($query) {
+                return $query->where('status', 'pending');
+            })
+            ->latest()
+            ->paginate(10);
+
+        return response()->json($refunds);
+    }
+
+    // get refund for business
+    public function getRefundforBusiness(Request $request, $businessId)
+    {
+        $query = Refund::with(['sale', 'user', 'approver', 'items.inventory', 'branch'])
+            ->where('business_id', $businessId);
+
+        // Status filter
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Date range filter
+        if ($request->has('date_range')) {
+            $dates = explode(' to ', $request->date_range);
+            if (count($dates) === 2) {
+                $query->whereBetween('created_at', [
+                    Carbon::parse($dates[0])->startOfDay(),
+                    Carbon::parse($dates[1])->endOfDay()
+                ]);
+            }
+        }
+
+        // Search filter
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->whereHas('sale', function($q) use ($search) {
+                    $q->where('sale_number', 'like', "%{$search}%");
+                })
+                ->orWhereHas('user', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        // Branch filter
+        if ($request->has('branch')) {
+            $query->where('branch_id', $request->branch);
+        }
+
+        // Sorting
+        $sortBy = $request->get('sort_by', 'created_at');
+        $descending = $request->get('descending', true);
+        $query->orderBy($sortBy, $descending ? 'desc' : 'asc');
+
+        // Pagination
+        $perPage = $request->get('per_page', 10);
+        $refunds = $query->paginate($perPage);
+
+        return response()->json($refunds);
+    }
+    
 
     private function isEligibleForRefund(Sale $sale)
     {

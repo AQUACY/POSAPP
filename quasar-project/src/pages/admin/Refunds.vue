@@ -111,7 +111,7 @@
       :columns="columns"
       row-key="id"
       :loading="loading"
-      v-model:pagination="pagination"
+      :pagination.sync="pagination"
       @request="onRequest"
     >
       <!-- Status Column -->
@@ -174,11 +174,11 @@
             </div>
             <div class="col-12 col-md-6">
               <div class="text-subtitle2">Date</div>
-              <div>{{ formatDate(selectedRefund?.created_at) }}</div>
+              <div>{{ new Date(selectedRefund?.created_at).toLocaleString() }}</div>
             </div>
             <div class="col-12 col-md-6">
-              <div class="text-subtitle2">Original Sale</div>
-              <div>{{ selectedRefund?.sale?.id }}</div>
+              <div class="text-subtitle2">Sale Number</div>
+              <div>{{ selectedRefund?.sale?.sale_number }}</div>
             </div>
             <div class="col-12 col-md-6">
               <div class="text-subtitle2">Branch</div>
@@ -186,11 +186,19 @@
             </div>
             <div class="col-12 col-md-6">
               <div class="text-subtitle2">Processed By</div>
-              <div>{{ selectedRefund?.processed_by?.name }}</div>
+              <div>{{ selectedRefund?.user?.name }}</div>
             </div>
             <div class="col-12 col-md-6">
               <div class="text-subtitle2">Status</div>
-              <div>{{ selectedRefund?.status }}</div>
+              <div>
+                <q-chip
+                  :color="getStatusColor(selectedRefund?.status)"
+                  text-color="white"
+                  dense
+                >
+                  {{ selectedRefund?.status }}
+                </q-chip>
+              </div>
             </div>
             <div class="col-12">
               <div class="text-subtitle2">Refunded Items</div>
@@ -200,30 +208,18 @@
                 row-key="id"
                 dense
                 flat
-              >
-                <template v-slot:body-cell-price="props">
-                  <q-td :props="props">
-                    ${{ props.row.price.toFixed(2) }}
-                  </q-td>
-                </template>
-                <template v-slot:body-cell-total="props">
-                  <q-td :props="props">
-                    ${{ (props.row.price * props.row.quantity).toFixed(2) }}
-                  </q-td>
-                </template>
-              </q-table>
+              />
             </div>
             <div class="col-12">
               <div class="text-subtitle2">Refund Details</div>
               <div class="row q-col-gutter-md">
                 <div class="col-12 col-md-6">
-                  <div>Subtotal: ${{ selectedRefund?.subtotal?.toFixed(2) }}</div>
-                  <div>Tax: ${{ selectedRefund?.tax?.toFixed(2) }}</div>
-                  <div class="text-h6">Total: ${{ selectedRefund?.amount?.toFixed(2) }}</div>
-                </div>
-                <div class="col-12 col-md-6">
-                  <div>Payment Method: {{ selectedRefund?.payment_method }}</div>
+                  <div>Total Amount: ${{ Number(selectedRefund?.total_amount).toFixed(2) }}</div>
                   <div>Reason: {{ selectedRefund?.reason }}</div>
+                </div>
+                <div v-if="selectedRefund?.rejection_reason" class="col-12 col-md-6">
+                  <div class="text-negative">Rejection Reason:</div>
+                  <div>{{ selectedRefund?.rejection_reason }}</div>
                 </div>
               </div>
             </div>
@@ -233,9 +229,47 @@
         <q-card-actions align="right" class="text-primary">
           <q-btn flat label="Close" v-close-popup />
           <q-btn
+            v-if="selectedRefund?.status === 'pending'"
             flat
-            label="Print Receipt"
-            @click="printReceipt(selectedRefund)"
+            label="Approve"
+            color="positive"
+            @click="approveRefund(selectedRefund)"
+          />
+          <q-btn
+            v-if="selectedRefund?.status === 'pending'"
+            flat
+            label="Reject"
+            color="negative"
+            @click="rejectRefund(selectedRefund)"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Rejection Reason Dialog -->
+    <q-dialog v-model="showRejectionDialog" persistent>
+      <q-card style="min-width: 350px">
+        <q-card-section class="row items-center">
+          <div class="text-h6">Reject Refund</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section>
+          <q-input
+            v-model="rejectionReason"
+            type="textarea"
+            label="Reason for Rejection"
+            :rules="[val => !!val || 'Reason is required']"
+          />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="primary" v-close-popup />
+          <q-btn
+            color="negative"
+            label="Reject"
+            @click="submitRejection"
           />
         </q-card-actions>
       </q-card>
@@ -247,42 +281,47 @@
 import { ref, computed, onMounted } from 'vue'
 import { api } from 'src/boot/axios'
 import { useQuasar } from 'quasar'
-import { format } from 'date-fns'
+import { useRoute } from 'vue-router'
+// import { format } from 'date-fns'
 
 export default {
   name: 'RefundsPage',
 
   setup () {
     const $q = useQuasar()
+    const route = useRoute()
     const loading = ref(false)
     const refunds = ref([])
     const branches = ref([])
     const refundDialog = ref(false)
     const selectedRefund = ref(null)
+    const showRejectionDialog = ref(false)
+    const rejectionReason = ref('')
+    const selectedRefundForRejection = ref(null)
 
     const columns = [
       { name: 'id', label: 'Refund ID', field: 'id', sortable: true },
-      { name: 'date', label: 'Date', field: 'created_at', sortable: true, format: val => format(new Date(val), 'MMM dd, yyyy HH:mm') },
-      { name: 'sale_id', label: 'Sale ID', field: row => row.sale?.id, sortable: true },
+      { name: 'sale_number', label: 'Sale #', field: row => row.sale?.sale_number, sortable: true },
       { name: 'branch', label: 'Branch', field: row => row.branch?.name, sortable: true },
-      { name: 'processed_by', label: 'Processed By', field: row => row.processed_by?.name, sortable: true },
-      { name: 'amount', label: 'Amount', field: 'amount', sortable: true },
+      { name: 'processed_by', label: 'Processed By', field: row => row.user?.name, sortable: true },
+      { name: 'total_amount', label: 'Amount', field: 'total_amount', sortable: true, format: val => `$${Number(val).toFixed(2)}` },
       { name: 'status', label: 'Status', field: 'status', sortable: true },
+      { name: 'created_at', label: 'Date', field: 'created_at', sortable: true, format: val => new Date(val).toLocaleString() },
       { name: 'actions', label: 'Actions', field: 'actions', align: 'right' }
     ]
 
     const itemColumns = [
-      { name: 'name', label: 'Item', field: 'name' },
-      { name: 'price', label: 'Price', field: 'price' },
+      { name: 'name', label: 'Item', field: row => row.inventory?.name },
       { name: 'quantity', label: 'Quantity', field: 'quantity' },
-      { name: 'total', label: 'Total', field: row => row.price * row.quantity }
+      { name: 'unit_price', label: 'Unit Price', field: 'unit_price', format: val => `$${Number(val).toFixed(2)}` },
+      { name: 'total_amount', label: 'Total', field: 'total_amount', format: val => `$${Number(val).toFixed(2)}` }
     ]
 
     const statusOptions = [
       { label: 'All', value: null },
-      { label: 'Completed', value: 'completed' },
       { label: 'Pending', value: 'pending' },
-      { label: 'Failed', value: 'failed' }
+      { label: 'Approved', value: 'approved' },
+      { label: 'Rejected', value: 'rejected' }
     ]
 
     const filter = ref({
@@ -321,7 +360,7 @@ export default {
     const fetchRefunds = async () => {
       loading.value = true
       try {
-        const response = await api.get('/refunds', {
+        const response = await api.get(`/admin/refunds/business/${route.params.businessId}`, {
           params: {
             ...filter.value,
             page: pagination.value.page,
@@ -346,7 +385,7 @@ export default {
 
     const fetchBranches = async () => {
       try {
-        const response = await api.get('/branches')
+        const response = await api.get(`/business/${route.params.businessId}/branches`)
         branches.value = response.data.map(branch => ({
           label: branch.name,
           value: branch.id
@@ -362,7 +401,7 @@ export default {
     }
 
     const printReceipt = (refund) => {
-      window.open(`/api/refunds/${refund.id}/receipt`, '_blank')
+      window.open(`/refunds/${refund.id}/receipt`, '_blank')
     }
 
     const onRequest = (props) => {
@@ -382,10 +421,6 @@ export default {
         failed: 'negative'
       }
       return colors[status] || 'grey'
-    }
-
-    const formatDate = (date) => {
-      return date ? format(new Date(date), 'MMM dd, yyyy HH:mm') : ''
     }
 
     const printReport = () => {
@@ -415,6 +450,77 @@ export default {
       }
     }
 
+    const approveRefund = async (refund) => {
+      try {
+        loading.value = true
+        await api.post(`/admin/refunds/business/${route.params.businessId}/${refund.id}/approve`, {
+          approved: true
+        })
+
+        $q.notify({
+          color: 'positive',
+          message: 'Refund approved successfully',
+          icon: 'check'
+        })
+
+        await fetchRefunds()
+        refundDialog.value = false
+      } catch (error) {
+        console.error('Error approving refund:', error)
+        $q.notify({
+          color: 'negative',
+          message: 'Failed to approve refund',
+          icon: 'error'
+        })
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const rejectRefund = (refund) => {
+      selectedRefundForRejection.value = refund
+      rejectionReason.value = ''
+      showRejectionDialog.value = true
+    }
+
+    const submitRejection = async () => {
+      if (!rejectionReason.value) {
+        $q.notify({
+          color: 'negative',
+          message: 'Please provide a reason for rejection',
+          icon: 'error'
+        })
+        return
+      }
+
+      try {
+        loading.value = true
+        await api.post(`/admin/refunds/business/${route.params.businessId}/${selectedRefundForRejection.value.id}/approve`, {
+          approved: false,
+          rejection_reason: rejectionReason.value
+        })
+
+        $q.notify({
+          color: 'negative',
+          message: 'Refund rejected successfully',
+          icon: 'check'
+        })
+
+        await fetchRefunds()
+        showRejectionDialog.value = false
+        refundDialog.value = false
+      } catch (error) {
+        console.error('Error rejecting refund:', error)
+        $q.notify({
+          color: 'negative',
+          message: 'Failed to reject refund',
+          icon: 'error'
+        })
+      } finally {
+        loading.value = false
+      }
+    }
+
     onMounted(() => {
       fetchRefunds()
       fetchBranches()
@@ -431,6 +537,8 @@ export default {
       pagination,
       refundDialog,
       selectedRefund,
+      showRejectionDialog,
+      rejectionReason,
       totalRefunds,
       totalTransactions,
       averageRefund,
@@ -440,9 +548,11 @@ export default {
       onRequest,
       onSearch,
       getStatusColor,
-      formatDate,
       printReport,
-      exportReport
+      exportReport,
+      approveRefund,
+      rejectRefund,
+      submitRejection
     }
   }
 }

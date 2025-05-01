@@ -15,7 +15,9 @@ class Refund extends Model
         'total_amount',
         'reason',
         'status',
-        'rejection_reason'
+        'rejection_reason',
+        'business_id',
+        'branch_id'
     ];
 
     public function sale(): BelongsTo
@@ -31,6 +33,16 @@ class Refund extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function business(): BelongsTo
+    {
+        return $this->belongsTo(Business::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function items(): HasMany
