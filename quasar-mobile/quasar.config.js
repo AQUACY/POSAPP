@@ -173,6 +173,7 @@ export default defineConfig((ctx) => {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/developing-cordova-apps/configuring-cordova
     cordova: {
+      id: 'com.kdg.posapp',
       // noIosLegacyBuildFlag: true, // uncomment only if you know what you are doing
     },
 
