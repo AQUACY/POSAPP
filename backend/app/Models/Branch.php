@@ -15,13 +15,14 @@ class Branch extends Model
     use HasFactory;
 
     protected $fillable = [
+        'business_id',
         'name',
         'address',
         'phone',
         'email',
         'settings',
-        'is_active',
-        'business_id'
+        'status'
+        
     ];
 
     protected $casts = [
@@ -41,7 +42,7 @@ class Branch extends Model
 
     public function staff()
     {
-        return $this->hasMany(User::class);
+        return $this->hasMany(Staff::class);
     }
 
     public function products()

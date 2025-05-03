@@ -15,38 +15,38 @@ class Business extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'name',
-        'logo',
+        'type',
         'address',
-        'phone',
+        'whatsapp_contact',
+        'logo_path',
+        'status',
+        'subscription_end_date',
         'email',
         'tax_id',
         'receipt_settings',
         'report_settings',
-        'settings',
-        'is_active'
+        'settings'
     ];
 
     protected $casts = [
-        'receipt_settings' => 'array',
-        'report_settings' => 'array',
-        'settings' => 'array',
-        'is_active' => 'boolean'
+        'subscription_end_date' => 'datetime'
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function branches()
     {
         return $this->hasMany(Branch::class);
     }
 
-    public function users()
-    {
-        return $this->hasManyThrough(User::class, Branch::class);
-    }
-
     public function staff()
     {
-        return $this->hasMany(User::class);
+        return $this->hasMany(Staff::class);
     }
 
     public function products()

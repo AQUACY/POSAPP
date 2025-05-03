@@ -7,12 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
+use Laravel\Sanctum\HasApiTokens;
 
 
 class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasApiTokens, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -23,9 +24,13 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'email',
         'password',
+        'phone',
         'role',
+        'business_id',
         'branch_id',
-        'business_id'
+        'status',
+        'otp',
+        'otp_expires_at'
     ];
 
     /**
@@ -36,6 +41,8 @@ class User extends Authenticatable implements JWTSubject
     protected $hidden = [
         'password',
         'remember_token',
+        'otp',
+        'otp_expires_at'
     ];
 
     /**
@@ -46,6 +53,7 @@ class User extends Authenticatable implements JWTSubject
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'otp_expires_at' => 'datetime'
     ];
 
     public function getJWTIdentifier()
@@ -60,12 +68,17 @@ class User extends Authenticatable implements JWTSubject
 
     public function business()
     {
-        return $this->belongsTo(Business::class);
+        return $this->hasOne(Business::class);
     }
 
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function staff()
+    {
+        return $this->hasOne(Staff::class);
     }
 
     public function isSuperAdmin()

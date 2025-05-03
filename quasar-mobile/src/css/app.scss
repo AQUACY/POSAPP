@@ -1,0 +1,326 @@
+// app global css in SCSS form
+
+// Variables
+:root {
+  // Light theme
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: rgba(0, 0, 0, 0.1);
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --text-primary: #2c3e50;
+  --text-secondary: #5c6c7c;
+  --accent-color: #1976d2;
+  --success-color: #21ba45;
+  --warning-color: #f2c037;
+  --error-color: #c10015;
+  --gradient-primary: linear-gradient(145deg, #1976d2 0%, #2196f3 100%);
+  --gradient-success: linear-gradient(145deg, #21ba45 0%, #4caf50 100%);
+  --gradient-warning: linear-gradient(145deg, #f2c037 0%, #ffc107 100%);
+  --gradient-error: linear-gradient(145deg, #c10015 0%, #f44336 100%);
+}
+
+// Dark theme
+.dark-theme {
+  --glass-bg: rgba(30, 30, 30, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: rgba(0, 0, 0, 0.2);
+  --card-bg: rgba(40, 40, 40, 0.9);
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+  --accent-color: #2196f3;
+  --success-color: #4caf50;
+  --warning-color: #ffc107;
+  --error-color: #f44336;
+  --gradient-primary: linear-gradient(145deg, #2196f3 0%, #1976d2 100%);
+  --gradient-success: linear-gradient(145deg, #4caf50 0%, #21ba45 100%);
+  --gradient-warning: linear-gradient(145deg, #ffc107 0%, #f2c037 100%);
+  --gradient-error: linear-gradient(145deg, #f44336 0%, #c10015 100%);
+}
+
+// Glassmorphism
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px var(--glass-shadow);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px var(--glass-shadow);
+  }
+}
+
+.glass-button {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 16px var(--glass-shadow);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--glass-shadow);
+  }
+}
+
+// Modern Cards
+.modern-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px var(--glass-shadow);
+  transition: all 0.3s ease;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px var(--glass-shadow);
+  }
+
+  .card-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  .card-body {
+    padding: 20px;
+  }
+
+  .card-footer {
+    padding: 20px;
+    border-top: 1px solid var(--glass-border);
+  }
+}
+
+// Gradients
+.gradient-primary {
+  background: var(--gradient-primary);
+}
+
+.gradient-success {
+  background: var(--gradient-success);
+}
+
+.gradient-warning {
+  background: var(--gradient-warning);
+}
+
+.gradient-error {
+  background: var(--gradient-error);
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+// Additional Animations
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes rotateIn {
+  from {
+    opacity: 0;
+    transform: rotate(-10deg) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+// Animation Classes
+.slide-in {
+  animation: slideIn 0.5s ease forwards;
+}
+
+.scale-in {
+  animation: scaleIn 0.5s ease forwards;
+}
+
+.rotate-in {
+  animation: rotateIn 0.5s ease forwards;
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--glass-bg) 0%,
+    var(--glass-border) 50%,
+    var(--glass-bg) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+// Custom Scrollbar
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--glass-bg);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-color);
+  border-radius: 4px;
+  
+  &:hover {
+    background: var(--gradient-primary);
+  }
+}
+
+// Typography
+.text-gradient {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+// Layout
+.page-container {
+  min-height: 100vh;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+}
+
+// Auth Pages
+.auth-container {
+  min-height: 100vh;
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.auth-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px var(--glass-shadow);
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  animation: fadeIn 0.5s ease;
+}
+
+// Illustrations
+.auth-illustration {
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto 30px;
+  animation: fadeIn 0.5s ease;
+}
+
+// Hover Effects
+.hover-lift {
+  transition: transform 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-5px);
+  }
+}
+
+.hover-scale {
+  transition: transform 0.3s ease;
+  
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.hover-rotate {
+  transition: transform 0.3s ease;
+  
+  &:hover {
+    transform: rotate(5deg);
+  }
+}
+
+// Glass Effects
+.glass-blur {
+  backdrop-filter: blur(10px);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-glow {
+  box-shadow: 0 0 20px var(--glass-shadow);
+  
+  &:hover {
+    box-shadow: 0 0 30px var(--glass-shadow);
+  }
+}
+
+// Gradient Effects
+.gradient-shine {
+  background: linear-gradient(
+    45deg,
+    var(--glass-bg) 0%,
+    var(--glass-border) 50%,
+    var(--glass-bg) 100%
+  );
+  background-size: 200% 200%;
+  animation: shimmer 3s infinite;
+}

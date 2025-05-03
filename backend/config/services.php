@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'twilio' => [
+        'sid' => env('TWILIO_SID'),
+        'token' => env('TWILIO_AUTH_TOKEN'),
+        'from_number' => env('TWILIO_FROM_NUMBER'),
+        'whatsapp_number' => env('TWILIO_WHATSAPP_NUMBER'),
+        'whatsapp_enabled' => env('TWILIO_WHATSAPP_ENABLED', false),
+        'sandbox_enabled' => env('TWILIO_SANDBOX_ENABLED', true),
+    ],
+
 ];

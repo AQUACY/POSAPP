@@ -17,12 +17,28 @@ use App\Http\Controllers\SuperAdmin\UserController;
 use App\Http\Controllers\Cashier\CashierController;
 use App\Http\Controllers\RefundController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Api\OnboardingController;
 
 
 
 // Public routes
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
+
+
+// Onboarding Routes
+Route::prefix('onboarding')->group(function () {
+    Route::post('register', [OnboardingController::class, 'register']);
+    Route::post('verify-otp', [OnboardingController::class, 'verifyOtp']);
+    Route::post('resend-otp', [OnboardingController::class, 'resendOtp']);
+    
+    Route::middleware('auth:api')->group(function () {
+        Route::post('setup-business', [OnboardingController::class, 'setupBusiness']);
+        // Route::put('update-user-business', [OnboardingController::class, 'updateUserBusiness']);
+        Route::post('setup-branch', [OnboardingController::class, 'setupBranch']);
+        Route::post('create-staff', [OnboardingController::class, 'createStaff']);
+    });
+});
 
 // Protected routes
 Route::middleware(['auth:api'])->group(function () {
@@ -237,4 +253,5 @@ Route::middleware(['auth:api'])->group(function () {
     });
 
 });
+
 
