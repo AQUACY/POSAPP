@@ -14,10 +14,17 @@ const routes = [
     ]
   },
   {
-    path: '/login',
+    path: '/auth/login',
     name: 'login',
-    component: () => import('pages/LoginPage.vue'),
+    component: () => import('layouts/AuthLayout.vue'),
+    children: [
+      { path: '', component: () => import('pages/auth/LoginPage.vue') }
+    ],
     meta: { guest: true }
+  },
+  {
+    path: '/onboarding',
+    component: () => import('pages/onboarding/OnboardingPage.vue')
   },
   {
     path: '/:catchAll(.*)*',

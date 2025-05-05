@@ -101,7 +101,8 @@ export default {
           color: 'positive',
           message: 'Logged out successfully'
         })
-      } catch (error) {
+      } catch (err) {
+        console.error('Logout error:', err)
         $q.notify({
           color: 'negative',
           message: 'Error logging out'
