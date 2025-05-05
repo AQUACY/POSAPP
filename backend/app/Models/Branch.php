@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasSync;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Product;
@@ -12,22 +13,25 @@ use App\Models\Inventory;
 
 class Branch extends Model
 {
-    use HasFactory;
+    use HasFactory, HasSync;
 
     protected $fillable = [
-        'business_id',
         'name',
         'address',
         'phone',
         'email',
-        'settings',
-        'status'
-        
+        'business_id',
+        'manager_id',
+        'status',
+        'sync_status',
+        'last_sync_at',
+        'device_id',
     ];
 
     protected $casts = [
-        'settings' => 'array',
-        'is_active' => 'boolean'
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'last_sync_at' => 'datetime',
     ];
 
     public function business()
@@ -35,9 +39,9 @@ class Branch extends Model
         return $this->belongsTo(Business::class);
     }
 
-    public function users()
+    public function manager()
     {
-        return $this->hasMany(User::class);
+        return $this->belongsTo(User::class, 'manager_id');
     }
 
     public function staff()
@@ -60,5 +64,10 @@ class Branch extends Model
     public function sales()
     {
         return $this->hasMany(Sale::class);
+    }
+
+    public function customers()
+    {
+        return $this->hasMany(Customer::class);
     }
 } 

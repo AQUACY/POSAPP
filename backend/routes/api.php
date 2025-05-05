@@ -254,4 +254,11 @@ Route::middleware(['auth:api'])->group(function () {
 
 });
 
+// Sync routes
+Route::prefix('sync')->group(function () {
+    Route::post('/', [App\Http\Controllers\Api\SyncController::class, 'sync']);
+    Route::get('/pending', [App\Http\Controllers\Api\SyncController::class, 'getPendingSync']);
+    Route::post('/mark-synced', [App\Http\Controllers\Api\SyncController::class, 'markAsSynced']);
+});
+
 
