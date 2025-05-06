@@ -1,0 +1,287 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890",
+		"name": "POS APP API",
+		"description": "API collection for testing the POS Application backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"john@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Onboarding",
+			"item": [
+				{
+					"name": "Register Business",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"business_name\": \"Sample Business\",\n    \"business_type\": \"retail\",\n    \"address\": \"123 Business St\",\n    \"phone\": \"+1234567890\",\n    \"email\": \"business@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/onboarding/setup-business",
+							"host": ["{{base_url}}"],
+							"path": ["api", "onboarding", "setup-business"]
+						}
+					}
+				},
+				{
+					"name": "Setup Branch",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"branch_name\": \"Main Branch\",\n    \"address\": \"456 Branch Ave\",\n    \"phone\": \"+1234567891\",\n    \"email\": \"branch@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/onboarding/setup-branch",
+							"host": ["{{base_url}}"],
+							"path": ["api", "onboarding", "setup-branch"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Super Admin",
+			"item": [
+				{
+					"name": "Create Business",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"New Business\",\n    \"type\": \"retail\",\n    \"address\": \"789 Business Ave\",\n    \"phone\": \"+1234567892\",\n    \"email\": \"newbusiness@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/super-admin/businesses",
+							"host": ["{{base_url}}"],
+							"path": ["api", "super-admin", "businesses"]
+						}
+					}
+				},
+				{
+					"name": "Create Branch",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"business_id\": 1,\n    \"name\": \"New Branch\",\n    \"address\": \"321 Branch St\",\n    \"phone\": \"+1234567893\",\n    \"email\": \"newbranch@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/super-admin/branches",
+							"host": ["{{base_url}}"],
+							"path": ["api", "super-admin", "branches"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "Create Inventory Item",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Product 1\",\n    \"description\": \"Sample product description\",\n    \"price\": 99.99,\n    \"quantity\": 100,\n    \"category_id\": 1,\n    \"branch_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/inventory",
+							"host": ["{{base_url}}"],
+							"path": ["api", "inventory"]
+						}
+					}
+				},
+				{
+					"name": "Create Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Electronics\",\n    \"description\": \"Electronic products category\",\n    \"business_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/categories",
+							"host": ["{{base_url}}"],
+							"path": ["api", "categories"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Cashier",
+			"item": [
+				{
+					"name": "Create Sale",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"items\": [\n        {\n            \"product_id\": 1,\n            \"quantity\": 2,\n            \"price\": 99.99\n        }\n    ],\n    \"customer_id\": 1,\n    \"payment_method\": \"cash\",\n    \"total_amount\": 199.98\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/branch/1/1/sales",
+							"host": ["{{base_url}}"],
+							"path": ["api", "branch", "1", "1", "sales"]
+						}
+					}
+				},
+				{
+					"name": "Create Customer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Customer Name\",\n    \"email\": \"customer@example.com\",\n    \"phone\": \"+1234567894\",\n    \"address\": \"123 Customer St\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/branch/1/1/customers",
+							"host": ["{{base_url}}"],
+							"path": ["api", "branch", "1", "1", "customers"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000"
+		},
+		{
+			"key": "token",
+			"value": "your_auth_token_here"
+		}
+	]
+} 

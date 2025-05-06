@@ -161,7 +161,7 @@
 <script>
 import { ref, reactive } from 'vue'
 import { useQuasar } from 'quasar'
-import { api } from 'src/boot/axios'
+import  api from '../../services/api'
 
 export default {
   name: 'BusinessSetup',

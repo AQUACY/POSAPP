@@ -2,37 +2,40 @@
 
 namespace App\Models;
 
+use App\Traits\HasSync;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Inventory extends Model
 {
-    use HasFactory;
+    use HasFactory, HasSync;
 
     protected $fillable = [
         'name',
         'description',
         'sku',
         'barcode',
-        'quantity',
-        'unit_price',
-        'cost_price',
-        'reorder_level',
         'category_id',
         'business_id',
         'branch_id',
-        'is_non_refundable',
-        'requires_condition_check',
-        'condition_notes',
-        'refund_restriction_amount',
-        'refund_restriction_days'
+        'unit_price',
+        'selling_price',
+        'quantity',
+        'reorder_level',
+        'status',
+        'sync_status',
+        'last_sync_at',
+        'device_id',
     ];
 
     protected $casts = [
-        'is_non_refundable' => 'boolean',
-        'requires_condition_check' => 'boolean',
-        'refund_restriction_amount' => 'decimal:2',
-        'refund_restriction_days' => 'integer'
+        'unit_price' => 'decimal:2',
+        'selling_price' => 'decimal:2',
+        'quantity' => 'decimal:2',
+        'reorder_level' => 'decimal:2',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'last_sync_at' => 'datetime',
     ];
 
     public function category()
@@ -53,6 +56,11 @@ class Inventory extends Model
     public function saleItems()
     {
         return $this->hasMany(SaleItem::class);
+    }
+
+    public function stockChanges()
+    {
+        return $this->hasMany(StockChange::class);
     }
 
     public function isEligibleForRefund()

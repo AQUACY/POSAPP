@@ -24,6 +24,11 @@ class Sale extends Model
     const PAYMENT_METHOD_CREDIT_CARD = 'credit_card';
     const PAYMENT_METHOD_GHANA_PAYMENT = 'ghana_payment';
 
+    // Sync status constants
+    const SYNC_STATUS_PENDING = 'pending';
+    const SYNC_STATUS_SYNCED = 'synced';
+    const SYNC_STATUS_FAILED = 'failed';
+
     protected $fillable = [
         'sale_number',
         'total_amount',
@@ -39,6 +44,9 @@ class Sale extends Model
         'branch_id',
         'cashier_id',
         'customer_id',
+        'sync_status',
+        'last_sync_at',
+        'device_id',
     ];
 
     protected $casts = [
@@ -47,7 +55,8 @@ class Sale extends Model
         'tax_amount' => 'decimal:2',
         'final_amount' => 'decimal:2',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
+        'last_sync_at' => 'datetime'
     ];
 
     public function business()
@@ -160,5 +169,61 @@ class Sale extends Model
     public function scopeForCashier($query, $cashierId)
     {
         return $query->where('cashier_id', $cashierId);
+    }
+
+    // Sync related methods
+    public function isSynced()
+    {
+        return $this->sync_status === self::SYNC_STATUS_SYNCED;
+    }
+
+    public function isSyncPending()
+    {
+        return $this->sync_status === self::SYNC_STATUS_PENDING;
+    }
+
+    public function isSyncFailed()
+    {
+        return $this->sync_status === self::SYNC_STATUS_FAILED;
+    }
+
+    public function markAsSynced()
+    {
+        $this->sync_status = self::SYNC_STATUS_SYNCED;
+        $this->last_sync_at = now();
+        $this->save();
+    }
+
+    public function markAsPending()
+    {
+        $this->sync_status = self::SYNC_STATUS_PENDING;
+        $this->save();
+    }
+
+    public function markAsFailed()
+    {
+        $this->sync_status = self::SYNC_STATUS_FAILED;
+        $this->save();
+    }
+
+    // Sync scopes
+    public function scopePendingSync($query)
+    {
+        return $query->where('sync_status', self::SYNC_STATUS_PENDING);
+    }
+
+    public function scopeSynced($query)
+    {
+        return $query->where('sync_status', self::SYNC_STATUS_SYNCED);
+    }
+
+    public function scopeFailedSync($query)
+    {
+        return $query->where('sync_status', self::SYNC_STATUS_FAILED);
+    }
+
+    public function scopeForDevice($query, $deviceId)
+    {
+        return $query->where('device_id', $deviceId);
     }
 } 

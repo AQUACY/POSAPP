@@ -57,7 +57,7 @@
         <GlassButton
           flat
           label="Register"
-          to="/auth/register"
+          to="/onboarding"
           text-gradient
           class="q-ml-sm"
         />
@@ -80,9 +80,9 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
-import { useAuthStore } from 'stores/auth'
-import GlassInput from 'components/common/GlassInput.vue'
-import GlassButton from 'components/common/GlassButton.vue'
+import { useAuthStore } from '../../stores/auth'
+import GlassInput from '../../components/common/GlassInput.vue'
+import GlassButton from '../../components/common/GlassButton.vue'
 
 const $q = useQuasar()
 const router = useRouter()
