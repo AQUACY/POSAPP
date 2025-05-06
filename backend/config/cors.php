@@ -18,7 +18,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:9000', 'http://192.168.162.126:9400'],
+    'allowed_origins' => ['http://localhost:9000', 'http://192.168.162.126:9400', 'http://localhost:61941', '*'],
 
     'allowed_origins_patterns' => [],
 
