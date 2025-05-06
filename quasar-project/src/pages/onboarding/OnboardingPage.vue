@@ -146,14 +146,14 @@
                       color="primary"
                       label="Continue Setup"
                       @click="currentStep = 5"
-                      :disable="!canProceedToStep5"
+                      :disable="!canProceedToComplete"
                     />
                   </div>
                 </div>
               </div>
 
               <!-- Step 5: Branch Setup -->
-              <div v-if="currentStep === 5">
+              <!-- <div v-if="currentStep === 5">
                 <div class="text-h5 q-mb-lg">Branch Setup</div>
                 <branch-setup
                   @branch-setup-complete="onBranchSetupComplete"
@@ -173,10 +173,10 @@
                     :disable="!canProceedToStep6"
                   />
                 </div>
-              </div>
+              </div> -->
 
               <!-- Step 6: Staff Setup -->
-              <div v-if="currentStep === 6">
+              <!-- <div v-if="currentStep === 6">
                 <div class="text-h5 q-mb-lg">Staff Setup</div>
                 <staff-setup
                   :business-id="businessId"
@@ -197,7 +197,7 @@
                     :disable="!canProceedToComplete"
                   />
                 </div>
-              </div>
+              </div> -->
             </div>
           </div>
         </div>
@@ -214,8 +214,8 @@ import {
   RegistrationForm,
   OtpVerification,
   BusinessSetup,
-  BranchSetup,
-  StaffSetup,
+  // BranchSetup,
+  // StaffSetup,
   LoginForm
 } from 'src/components/onboarding'
 
@@ -225,8 +225,8 @@ export default {
     RegistrationForm,
     OtpVerification,
     BusinessSetup,
-    BranchSetup,
-    StaffSetup,
+    // BranchSetup,
+    // StaffSetup,
     LoginForm
   },
   setup () {
@@ -252,15 +252,15 @@ export default {
       {
         title: 'Business Setup',
         description: 'Configure your business details'
-      },
-      {
-        title: 'Branch Setup',
-        description: 'Set up your first branch'
-      },
-      {
-        title: 'Staff Setup',
-        description: 'Create staff accounts'
       }
+      // {
+      //   title: 'Branch Setup',
+      //   description: 'Set up your first branch'
+      // },
+      // {
+      //   title: 'Staff Setup',
+      //   description: 'Create staff accounts'
+      // }
     ]
 
     // Error states
@@ -268,24 +268,24 @@ export default {
     const verificationError = ref(false)
     const loginError = ref(false)
     const businessSetupError = ref(false)
-    const branchSetupError = ref(false)
-    const staffSetupError = ref(false)
+    // const branchSetupError = ref(false)
+    // const staffSetupError = ref(false)
 
     // Step completion states
     const registrationComplete = ref(false)
     const verificationComplete = ref(false)
     const loginComplete = ref(false)
     const businessSetupComplete = ref(false)
-    const branchSetupComplete = ref(false)
-    const staffSetupComplete = ref(false)
+    // const branchSetupComplete = ref(false)
+    // const staffSetupComplete = ref(false)
 
     // Computed properties for step navigation
     const canProceedToStep2 = computed(() => registrationComplete.value)
     const canProceedToStep3 = computed(() => verificationComplete.value)
     const canProceedToStep4 = computed(() => loginComplete.value)
     const canProceedToStep5 = computed(() => businessSetupComplete.value)
-    const canProceedToStep6 = computed(() => branchSetupComplete.value)
-    const canProceedToComplete = computed(() => staffSetupComplete.value)
+    // const canProceedToStep6 = computed(() => branchSetupComplete.value)
+    // const canProceedToComplete = computed(() => staffSetupComplete.value)
 
     // Load onboarding progress from localStorage
     const loadOnboardingProgress = () => {
@@ -300,11 +300,12 @@ export default {
         currentStep.value = 3 // Login
       } else if (progress.loginComplete && !progress.businessSetupComplete) {
         currentStep.value = 4 // Business Setup
-      } else if (progress.businessSetupComplete && !progress.branchSetupComplete) {
-        currentStep.value = 5 // Branch Setup
-      } else if (progress.branchSetupComplete && !progress.staffSetupComplete) {
-        currentStep.value = 6 // Staff Setup
       }
+      //  else if (progress.businessSetupComplete && !progress.branchSetupComplete) {
+      //   currentStep.value = 5 // Branch Setup
+      // } else if (progress.branchSetupComplete && !progress.staffSetupComplete) {
+      //   currentStep.value = 6 // Staff Setup
+      // }
     }
 
     // Save onboarding progress to localStorage
@@ -396,6 +397,14 @@ export default {
         type: 'positive',
         message: 'Business setup completed successfully!'
       })
+      clearOnboardingProgress()
+      $q.notify({
+        type: 'positive',
+        message: 'Setup completed successfully! Redirecting to dashboard...'
+      })
+      setTimeout(() => {
+        router.push(`/business/${businessId.value}/dashboard`)
+      }, 1500)
     }
 
     const onBusinessSetupError = () => {

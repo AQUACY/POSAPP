@@ -348,7 +348,7 @@ export default {
         fetchStaff()
         $q.notify({
           color: 'positive',
-          message: `Staff member ${editingStaff.value.id ? 'updated' : 'created'} successfully`,
+          message: `Staff member ${editingStaff.value.id ? 'updated' : 'created'} succe                                         ssfully`,
           icon: 'check'
         })
       } catch (error) {
