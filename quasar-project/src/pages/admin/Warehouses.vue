@@ -57,7 +57,7 @@
       :columns="columns"
       row-key="id"
       :loading="loading"
-      :pagination.sync="pagination"
+      v-model:pagination="pagination"
       @request="onRequest"
     >
       <!-- Status Column -->
@@ -76,6 +76,15 @@
       <!-- Actions Column -->
       <template v-slot:body-cell-actions="props">
         <q-td :props="props" class="q-gutter-sm">
+          <q-btn
+            flat
+            round
+            color="primary"
+            icon="requests"
+            @click="openWarehouseDialog(props.row)"
+          >
+          <q-tooltip>Stock Requests</q-tooltip>
+          </q-btn>
           <q-btn
             flat
             round
@@ -247,8 +256,8 @@ export default {
             descending: pagination.value.descending
           }
         })
-        warehouses.value = response.data.data
-        pagination.value.rowsNumber = response.data.total
+        warehouses.value = Array.isArray(response.data) ? response.data : response.data.data || []
+        pagination.value.rowsNumber = Array.isArray(response.data) ? response.data.length : response.data.total || 0
       } catch (error) {
         console.error('Error fetching warehouses:', error)
         $q.notify({

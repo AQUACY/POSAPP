@@ -1,7 +1,7 @@
 <template>
   <q-page padding>
     <div class="row items-center justify-between q-mb-md">
-      <div class="text-h4">Branch Inventory</div>
+      <div class="text-h4">Branch Inventory - {{ branchDetails.data.name }}</div>
       <q-btn
         color="primary"
         icon="add"
@@ -304,10 +304,11 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { api } from 'src/boot/axios'
 import { useQuasar } from 'quasar'
 import { useRoute } from 'vue-router'
+import { useBranchManagerStore } from 'src/stores/branchManager'
 
 export default {
   name: 'BranchInventoryPage',
@@ -315,6 +316,7 @@ export default {
   setup () {
     const $q = useQuasar()
     const route = useRoute()
+    const branchStore = useBranchManagerStore()
     const loading = ref(false)
     const inventory = ref([])
     const categories = ref([])
@@ -574,9 +576,22 @@ export default {
       }
     }
 
-    onMounted(() => {
-      fetchInventory()
-      fetchCategories()
+    onMounted(async () => {
+      loading.value = true
+      try {
+        await branchStore.fetchBranchDetails(route.params.businessId, route.params.branchId)
+        await fetchInventory()
+        await fetchCategories()
+      } catch (error) {
+        console.error('Error loading data:', error)
+        $q.notify({
+          color: 'negative',
+          message: 'Error loading data',
+          icon: 'error'
+        })
+      } finally {
+        loading.value = false
+      }
     })
 
     return {
@@ -607,8 +622,9 @@ export default {
       onSearch,
       getStockStatus,
       getStockStatusColor,
-      getChangeTypeColor
+      getChangeTypeColor,
+      branchDetails: computed(() => branchStore.branchDetails)
     }
   }
 }
-</script> 
+</script>

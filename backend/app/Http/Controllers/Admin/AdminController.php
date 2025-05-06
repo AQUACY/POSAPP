@@ -76,6 +76,7 @@ class AdminController extends Controller
         return response()->json(BusinessResource::collection($businesses));
     }
 
+
     // Branch Management
     public function createBranch(Request $request)
     {
@@ -279,7 +280,16 @@ class AdminController extends Controller
     public function listWarehouses()    
     {
         $warehouses = Warehouse::with(['business'])
-            ->withCount(['inventory', 'stockRequests'])
+            ->withCount(['inventories', 'stockRequests'])
+            ->get();
+        return response()->json(WarehouseResource::collection($warehouses));
+    }
+
+    public function listWarehousesofBusiness(Request $request)
+    {
+        $businessId = $request->route('businessId');
+        $warehouses = Warehouse::with(['business'])
+            ->where('business_id', $businessId)
             ->get();
         return response()->json(WarehouseResource::collection($warehouses));
     }
@@ -356,7 +366,7 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
-            'role' => 'required|in:inventory_manager,cashier',
+            'role' => 'required|in:inventory_clerk,cashier,branch_manager',
             'business_id' => 'required|exists:businesses,id',
             'branch_id' => 'required|exists:branches,id',
         ]);
@@ -385,7 +395,7 @@ class AdminController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'email' => 'sometimes|required|email|unique:users,email,' . $id,
             'password' => 'sometimes|required|string|min:8',
-            'role' => 'sometimes|required|in:inventory_manager,cashier',
+            'role' => 'sometimes|required|in:inventory_clerk,cashier,branch_manager',
             'business_id' => 'sometimes|required|exists:businesses,id',
             'branch_id' => 'sometimes|required|exists:branches,id',
         ]);

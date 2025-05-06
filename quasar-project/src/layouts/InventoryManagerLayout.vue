@@ -39,7 +39,7 @@
         <q-item
           v-ripple
           clickable
-          to="/inventory"
+          :to="`/inventory/${$route.params.businessId}/${$route.params.branchId}/inventory`"
           exact
         >
           <q-item-section avatar>
@@ -51,7 +51,7 @@
         <q-item
           v-ripple
           clickable
-          to="/inventory/reports"
+          :to="`/inventory/${$route.params.businessId}/${$route.params.branchId}/reports`"
           exact
         >
           <q-item-section avatar>

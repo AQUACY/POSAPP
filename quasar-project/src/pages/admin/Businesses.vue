@@ -1,7 +1,7 @@
 <template>
   <q-page padding>
     <div class="row items-center justify-between q-mb-md">
-      <div class="text-h4">Businesses</div>
+      <div class="text-h4">Your Business</div>
       <q-btn
         color="primary"
         icon="add"

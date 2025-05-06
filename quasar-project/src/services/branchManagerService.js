@@ -38,8 +38,17 @@ export const branchManagerService = {
   },
 
   // Stock Request Management
-  getStockRequests(businessId, branchId) {
-    return api.get(`/branch/${businessId}/${branchId}/branch_manager/stock-requests`)
+  getStockRequests(businessId, branchId, params = {}) {
+    return api.get(`/branch/${businessId}/${branchId}/branch_manager/stock-requests`, { params })
+  },
+
+  // Warehouse Management
+  getWarehouses(businessId, branchId) {
+    return api.get(`/branch/${businessId}/${branchId}/branch_manager/warehouses`)
+  },
+
+  getWarehouseInventory(businessId, branchId, warehouseId) {
+    return api.get(`/branch/${businessId}/${branchId}/branch_manager/warehouses/${warehouseId}/inventory`)
   },
 
   createStockRequest(businessId, branchId, data) {

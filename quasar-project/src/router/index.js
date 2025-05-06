@@ -82,6 +82,8 @@ function hasRequiredRole(authStore, requiredRole) {
           return authStore.isBusinessAdmin
         case 'cashier':
           return authStore.isCashier
+        case 'inventory_clerk':
+          return authStore.isInventoryClerk
         default:
           return false
       }
@@ -95,6 +97,8 @@ function hasRequiredRole(authStore, requiredRole) {
       return authStore.isBusinessAdmin
     case 'cashier':
       return authStore.isCashier
+    case 'inventory_clerk':
+      return authStore.isInventoryClerk
     default:
       return false
   }

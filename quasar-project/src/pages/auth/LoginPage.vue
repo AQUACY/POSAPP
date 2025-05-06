@@ -57,7 +57,7 @@
         <GlassButton
           flat
           label="Register"
-          to="/auth/register"
+          to="/onboarding"
           text-gradient
           class="q-ml-sm"
         />

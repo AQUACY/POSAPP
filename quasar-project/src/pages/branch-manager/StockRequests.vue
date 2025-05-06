@@ -14,7 +14,7 @@
       :rows="stockRequests"
       :columns="columns"
       :loading="loading"
-      :pagination="pagination"
+      v-model:pagination="pagination"
       row-key="id"
       @request="onRequest"
     >
@@ -196,7 +196,7 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useBranchManagerStore } from 'stores/branchManager'
@@ -293,35 +293,85 @@ export default {
     ]
 
     const stockRequests = computed(() => {
-      return store.stockRequests?.data || []
+      if (!store.stockRequests) return []
+      return Array.isArray(store.stockRequests.data) ? store.stockRequests.data : []
     })
 
-    const warehouses = ref([
-      { label: 'Main Warehouse', value: 1 },
-      { label: 'Secondary Warehouse', value: 2 }
-    ])
+    const warehouses = computed(() => {
+      if (!store.warehouses) return []
+      // Handle single warehouse case
+      if (!Array.isArray(store.warehouses)) {
+        return store.warehouses.data ? [
+          {
+            label: store.warehouses.data.name,
+            value: store.warehouses.data.id
+          }
+        ] : []
+      }
+      // Handle multiple warehouses case
+      return store.warehouses.map(warehouse => ({
+        label: warehouse.name,
+        value: warehouse.id
+      }))
+    })
 
-    const inventoryItems = ref([
-      { label: 'Laptop Pro', value: 1 },
-      { label: 'Wireless Mouse', value: 2 },
-      { label: 'Office Chair', value: 3 }
-    ])
+    const inventoryItems = ref([])
+
+    const loadWarehouseInventory = async (warehouseId) => {
+      try {
+        const { businessId, branchId } = route.params
+        const inventory = await store.fetchWarehouseInventory(businessId, branchId, warehouseId)
+        inventoryItems.value = inventory.map(item => ({
+          label: item.name,
+          value: item.id
+        }))
+      } catch (error) {
+        console.error('Error loading warehouse inventory:', error)
+        $q.notify({
+          type: 'negative',
+          message: 'Failed to load warehouse inventory'
+        })
+      }
+    }
 
     const loadData = async () => {
       loading.value = true
       try {
         const { businessId, branchId } = route.params
-        await store.fetchStockRequests(businessId, branchId)
-        pagination.value.rowsNumber = store.stockRequests?.total || 0
-      } catch {
+        await Promise.all([
+          store.fetchStockRequests(businessId, branchId, {
+            page: pagination.value.page,
+            per_page: pagination.value.rowsPerPage,
+            sort_by: pagination.value.sortBy,
+            descending: pagination.value.descending
+          }),
+          store.fetchWarehouses(businessId, branchId)
+        ])
+        
+        if (store.stockRequests) {
+          pagination.value.rowsNumber = store.stockRequests.total
+          pagination.value.page = store.stockRequests.current_page
+          pagination.value.rowsPerPage = store.stockRequests.per_page
+        }
+      } catch (error) {
+        console.error('Error loading data:', error)
         $q.notify({
           type: 'negative',
-          message: 'Failed to load stock requests'
+          message: 'Failed to load data'
         })
       } finally {
         loading.value = false
       }
     }
+
+    // Watch for warehouse selection to load its inventory
+    watch(() => form.value.warehouse_id, async (newWarehouseId) => {
+      if (newWarehouseId) {
+        await loadWarehouseInventory(newWarehouseId)
+      } else {
+        inventoryItems.value = []
+      }
+    })
 
     const onRequest = (props) => {
       pagination.value = props.pagination
@@ -334,7 +384,9 @@ export default {
         items: [{ inventory_id: null, quantity_requested: 1 }],
         notes: ''
       }
-      showDialog.value = true
+      nextTick(() => {
+        showDialog.value = true
+      })
     }
 
     const addItem = () => {

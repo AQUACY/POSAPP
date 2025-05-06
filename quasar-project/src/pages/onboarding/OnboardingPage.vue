@@ -285,7 +285,7 @@ export default {
     const canProceedToStep4 = computed(() => loginComplete.value)
     const canProceedToStep5 = computed(() => businessSetupComplete.value)
     // const canProceedToStep6 = computed(() => branchSetupComplete.value)
-    // const canProceedToComplete = computed(() => staffSetupComplete.value)
+    const canProceedToComplete = computed(() => businessSetupComplete.value)
 
     // Load onboarding progress from localStorage
     const loadOnboardingProgress = () => {
@@ -415,56 +415,56 @@ export default {
       })
     }
 
-    const onBranchSetupComplete = () => {
-      branchSetupComplete.value = true
-      branchSetupError.value = false
-      currentStep.value = 6
-      $q.notify({
-        type: 'positive',
-        message: 'Branch setup completed!'
-      })
-    }
+    // const onBranchSetupComplete = () => {
+    //   branchSetupComplete.value = true
+    //   branchSetupError.value = false
+    //   currentStep.value = 6
+    //   $q.notify({
+    //     type: 'positive',
+    //     message: 'Branch setup completed!'
+    //   })
+    // }
 
-    const onBranchSetupError = () => {
-      branchSetupError.value = true
-      $q.notify({
-        type: 'negative',
-        message: 'Branch setup failed. Please try again.'
-      })
-    }
+    // const onBranchSetupError = () => {
+    //   branchSetupError.value = true
+    //   $q.notify({
+    //     type: 'negative',
+    //     message: 'Branch setup failed. Please try again.'
+    //   })
+    // }
 
-    const onStaffSetupComplete = () => {
-      staffSetupComplete.value = true
-      staffSetupError.value = false
-      clearOnboardingProgress()
-      $q.notify({
-        type: 'positive',
-        message: 'Setup completed successfully! Redirecting to dashboard...'
-      })
-      setTimeout(() => {
-        router.push(`/business/${businessId.value}/dashboard`)
-      }, 1500)
-    }
+    // const onStaffSetupComplete = () => {
+    //   staffSetupComplete.value = true
+    //   staffSetupError.value = false
+    //   clearOnboardingProgress()
+    //   $q.notify({
+    //     type: 'positive',
+    //     message: 'Setup completed successfully! Redirecting to dashboard...'
+    //   })
+    //   setTimeout(() => {
+    //     router.push(`/business/${businessId.value}/dashboard`)
+    //   }, 1500)
+    // }
 
-    const onStaffSetupError = () => {
-      staffSetupError.value = true
-      $q.notify({
-        type: 'negative',
-        message: 'Staff setup failed. Please try again.'
-      })
-    }
+    // const onStaffSetupError = () => {
+    //   staffSetupError.value = true
+    //   $q.notify({
+    //     type: 'negative',
+    //     message: 'Staff setup failed. Please try again.'
+    //   })
+    // }
 
-    const onSkipSetup = () => {
-      $q.dialog({
-        title: 'Skip Setup',
-        message: 'Are you sure you want to skip branch and staff setup? You can set these up later from the dashboard.',
-        cancel: true,
-        persistent: true
-      }).onOk(() => {
-        clearOnboardingProgress()
-        router.push(`/business/${businessId.value}/dashboard`)
-      })
-    }
+    // const onSkipSetup = () => {
+    //   $q.dialog({
+    //     title: 'Skip Setup',
+    //     message: 'Are you sure you want to skip branch and staff setup? You can set these up later from the dashboard.',
+    //     cancel: true,
+    //     persistent: true
+    //   }).onOk(() => {
+    //     clearOnboardingProgress()
+    //     router.push(`/business/${businessId.value}/dashboard`)
+    //   })
+    // }
 
     return {
       currentStep,
@@ -475,13 +475,13 @@ export default {
       verificationError,
       loginError,
       businessSetupError,
-      branchSetupError,
-      staffSetupError,
+      // branchSetupError,
+      // staffSetupError,
       canProceedToStep2,
       canProceedToStep3,
       canProceedToStep4,
-      canProceedToStep5,
-      canProceedToStep6,
+      // canProceedToStep5,
+      // canProceedToStep6,
       canProceedToComplete,
       onRegistrationComplete,
       onRegistrationError,
@@ -491,11 +491,11 @@ export default {
       onLoginError,
       onBusinessSetupComplete,
       onBusinessSetupError,
-      onBranchSetupComplete,
-      onBranchSetupError,
-      onStaffSetupComplete,
-      onStaffSetupError,
-      onSkipSetup
+      // onBranchSetupComplete,
+      // onBranchSetupError,
+      // onStaffSetupComplete,
+      // onStaffSetupError,
+      // onSkipSetup
     }
   }
 }

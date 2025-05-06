@@ -77,6 +77,7 @@ export default {
         icon: 'dashboard',
         link: '/dashboard'
       },
+      
       {
         title: 'Branches',
         icon: 'store',
@@ -116,6 +117,11 @@ export default {
         title: 'Reports',
         icon: 'assessment',
         link: '/reports'
+      },
+      {
+        title: 'Settings',
+        icon: 'settings',
+        link: '/settings'
       }
     ]
 

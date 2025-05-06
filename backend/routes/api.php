@@ -126,7 +126,6 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/warehouses/{id}', [AdminController::class, 'getWarehouse']);
         Route::get('/warehouses', [AdminController::class, 'listWarehouses']);
         Route::delete('/warehouses/{id}', [AdminController::class, 'deleteWarehouse']);
-
         // Category Management
         Route::post('/categories', [AdminController::class, 'createCategory']);
         Route::put('/categories/{id}', [AdminController::class, 'updateCategory']);
@@ -168,14 +167,19 @@ Route::middleware(['auth:api'])->group(function () {
     });
 
     // Branch Manager routes
-    Route::middleware([RoleMiddleware::class . ':branch_manager'])->group(function () {
+    Route::middleware([RoleMiddleware::class . ':admin,branch_manager' ])->group(function () {
         Route::prefix('branch/{businessId}/{branchId}/branch_manager')->group(function () {
             Route::get('/dashboard', [BranchManagerController::class, 'dashboard']);
             Route::get('/reports', [BranchManagerController::class, 'reports']);
               // Branch Management
             Route::get('/branch', [BranchManagerController::class, 'getBranchDetails']);
             Route::put('/branch', [BranchManagerController::class, 'updateBranchDetails']);
-    
+            
+            // Warehouse Management
+            Route::get('/warehouses', [BranchManagerController::class, 'getWarehouse']);
+            Route::get('/warehouses/{id}/inventory', [BranchManagerController::class, 'getInventoryofWarehouse']);
+            
+
             // Inventory Management
             Route::get('/inventory', [BranchManagerController::class, 'getInventory']);
             Route::post('/inventory', [BranchManagerController::class, 'createInventoryItem']);
@@ -204,25 +208,27 @@ Route::middleware(['auth:api'])->group(function () {
     });
 
      // Inventory Clerk routes
-     Route::middleware([RoleMiddleware::class . ':inventory_clerk'])->group(function () {
-        Route::prefix('branch/{branch}')->group(function () {
-            Route::get('/inventory', [InventoryController::class, 'index']);
-            Route::post('/inventory', [InventoryController::class, 'store']);
-        });
+     Route::middleware([RoleMiddleware::class . ':inventory_clerk,branch_manager'])->group(function () {
+        // Dashboard
+        Route::get('/dashboard/summary', [InventoryManagerController::class, 'getDashboardSummary']);
+        Route::get('/dashboard/activities', [InventoryManagerController::class, 'getRecentActivities']);
+        Route::get('/dashboard/alerts', [InventoryManagerController::class, 'getStockAlerts']);
+        Route::get('/dashboard/expiring', [InventoryManagerController::class, 'getExpiringItems']);
 
-         // Inventory Management
-         Route::get('/inventory', [InventoryManagerController::class, 'getInventory']);
-         Route::get('/inventory/{id}', [InventoryManagerController::class, 'getInventoryItem']);
-         Route::post('/inventory', [InventoryManagerController::class, 'createInventory']);
-         Route::put('/inventory/{id}', [InventoryManagerController::class, 'updateInventory']);
-         Route::put('/inventory/{id}/quantity', [InventoryManagerController::class, 'updateQuantity']);
- 
-         // Inventory Reports
-         Route::get('/inventory/low-stock', [InventoryManagerController::class, 'getLowStockItems']);
-         Route::get('/inventory/summary', [InventoryManagerController::class, 'getInventorySummary']);
- 
-         // Categories
-         Route::get('/categories', [InventoryManagerController::class, 'getCategories']);
+        // Categories
+        Route::get('/categories', [InventoryManagerController::class, 'getCategories']);
+
+        // Inventory Management
+        Route::get('/inventory', [InventoryManagerController::class, 'getInventory']);
+        Route::get('/inventory/{id}', [InventoryManagerController::class, 'getInventoryItem']);
+        Route::post('/inventory', [InventoryManagerController::class, 'createInventory']);
+        Route::put('/inventory/{id}', [InventoryManagerController::class, 'updateInventory']);
+        Route::put('/inventory/{id}/quantity', [InventoryManagerController::class, 'updateQuantity']);
+
+        // Inventory Reports
+        Route::get('/inventory/low-stock', [InventoryManagerController::class, 'getLowStockItems']);
+        Route::get('/inventory/expired', [InventoryManagerController::class, 'getExpiredItems']);
+        Route::get('/inventory/summary', [InventoryManagerController::class, 'getInventorySummary']);
     });
     
     // Cashier routes

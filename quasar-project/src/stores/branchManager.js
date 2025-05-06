@@ -11,6 +11,8 @@ export const useBranchManagerStore = defineStore('branchManager', {
     customers: [],
     staff: [],
     stockRequests: [],
+    warehouses: [],
+    warehouseInventory: null,
     loading: false,
     error: null
   }),
@@ -176,10 +178,10 @@ export const useBranchManagerStore = defineStore('branchManager', {
       }
     },
 
-    async fetchStockRequests(businessId, branchId) {
+    async fetchStockRequests(businessId, branchId, params = {}) {
       this.loading = true
       try {
-        const response = await branchManagerService.getStockRequests(businessId, branchId)
+        const response = await branchManagerService.getStockRequests(businessId, branchId, params)
         this.stockRequests = response.data
       } catch (error) {
         this.error = error.message
@@ -221,6 +223,33 @@ export const useBranchManagerStore = defineStore('branchManager', {
       try {
         await branchManagerService.cancelStockRequest(businessId, branchId, id)
         await this.fetchStockRequests(businessId, branchId)
+      } catch (error) {
+        this.error = error.message
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchWarehouses(businessId, branchId) {
+      this.loading = true
+      try {
+        const response = await branchManagerService.getWarehouses(businessId, branchId)
+        this.warehouses = Array.isArray(response.data) ? response.data : [response.data.data]
+      } catch (error) {
+        this.error = error.message
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchWarehouseInventory(businessId, branchId, warehouseId) {
+      this.loading = true
+      try {
+        const response = await branchManagerService.getWarehouseInventory(businessId, branchId, warehouseId)
+        this.warehouseInventory = response.data
+        return response.data
       } catch (error) {
         this.error = error.message
         throw error

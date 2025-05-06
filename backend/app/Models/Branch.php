@@ -49,6 +49,12 @@ class Branch extends Model
         return $this->hasMany(Staff::class);
     }
 
+    public function users()
+{
+    return $this->hasMany(User::class);
+}
+
+
     public function products()
     {
         return $this->belongsToMany(Product::class)

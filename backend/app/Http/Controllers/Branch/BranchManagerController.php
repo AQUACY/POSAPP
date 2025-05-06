@@ -95,7 +95,6 @@ class BranchManagerController extends BaseController
     {
         $branch = Branch::where('id', $branchId)
             ->where('business_id', $businessId)
-            ->with(['users', 'products'])
             ->firstOrFail();
 
         return $this->sendResponse($branch, 'Branch details retrieved successfully');
@@ -145,6 +144,31 @@ class BranchManagerController extends BaseController
             ->paginate(20);
 
         return $this->sendResponse($inventory, 'Inventory retrieved successfully');
+    }
+
+    /**
+     * Get warehouse
+     *
+     * @param int $businessId
+     * @return JsonResponse
+     */
+    public function getWarehouse(int $businessId): JsonResponse
+    {
+        $warehouse = Warehouse::where('business_id', $businessId)
+            ->firstOrFail();
+
+        return $this->sendResponse($warehouse, 'Warehouse retrieved successfully');
+    }
+
+    // Get inventory of warehouse
+    public function getInventoryofWarehouse(int $businessId, int $branchId, int $id): JsonResponse
+    {
+        $inventory = Inventory::where('warehouse_id', $id)
+            ->where('business_id', $businessId)
+            ->where('branch_id', $branchId)
+            ->get();
+
+        return $this->sendResponse($inventory, 'Inventory of warehouse retrieved successfully');
     }
 
     /**

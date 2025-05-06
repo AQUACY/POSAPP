@@ -26,6 +26,7 @@ class Inventory extends Model
         'sync_status',
         'last_sync_at',
         'device_id',
+        'expiry_date',
     ];
 
     protected $casts = [
@@ -36,6 +37,7 @@ class Inventory extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'last_sync_at' => 'datetime',
+        'expiry_date' => 'date',
     ];
 
     public function category()

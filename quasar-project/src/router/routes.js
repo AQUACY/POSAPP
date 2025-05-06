@@ -6,6 +6,8 @@ const routes = [
       { path: '', component: () => import('pages/IndexPage.vue') }
     ]
   },
+
+  // Admin Rooutes
   {
     path: '/business/:businessId',
     component: () => import('layouts/AdminLayout.vue'),
@@ -31,7 +33,8 @@ const routes = [
       { path: 'categories', component: () => import('pages/admin/Categories.vue') },
       { path: 'sales', component: () => import('pages/admin/Sales.vue') },
       { path: 'refunds', component: () => import('pages/admin/Refunds.vue') },
-      { path: 'reports', component: () => import('pages/admin/Reports.vue') }
+      { path: 'reports', component: () => import('pages/admin/Reports.vue') },
+      { path: 'settings', component: () => import('pages/admin/Settings.vue') },
     ]
   },
   {
@@ -88,23 +91,32 @@ const routes = [
     ]
   },
   // Inventory Manager routes
-  // {
-  //   path: '/inventory/:businessId/:branchId',
-  //   component: () => import('layouts/InventoryManagerLayout.vue'),
-  //   meta: { requiresAuth: true, role: 'inventory_manager' },
-  //   children: [
-  //     {
-  //       path: '',
-  //       name: 'inventory',
-  //       component: () => import('pages/inventory/InventoryPage.vue')
-  //     },
-  //     {
-  //       path: 'reports',
-  //       name: 'inventory-reports',
-  //       component: () => import('pages/inventory/ReportsPage.vue')
-  //     }
-  //   ]
-  // },
+  {
+    path: '/inventory/:businessId/:branchId',
+    component: () => import('layouts/InventoryManagerLayout.vue'),
+    meta: { requiresAuth: true, role: 'inventory_clerk' },
+    children: [
+      {
+        path: '',
+        redirect: to => `/inventory/${to.params.businessId}/${to.params.branchId}/dashboard`
+      },
+      {
+        path: 'dashboard',
+        name: 'inventory-dashboard',
+        component: () => import('pages/inventory/Dashboard.vue')
+      },
+      {
+        path: 'inventory',
+        name: 'inventory-list',
+        component: () => import('pages/inventory/Inventory.vue')
+      }
+      // {
+      //   path: 'reports',
+      //   name: 'inventory-reports',
+      //   component: () => import('pages/inventory/Reports.vue')
+      // }
+    ]
+  },
   // Branch Manager routes
   {
     path: '/branch/:businessId/:branchId',

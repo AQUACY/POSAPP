@@ -222,6 +222,7 @@ export default {
     const businesses = ref([])
     const branchDialog = ref(false)
     const deleteDialog = ref(false)
+    const businessIDfromdata = null
     const editingBranch = ref({
       name: '',
       address: '',
@@ -292,11 +293,13 @@ export default {
 
     const fetchBusinesses = async () => {
       try {
-        const response = await api.get('/businesses')
-        businesses.value = response.data.map(business => ({
+        const response = await api.get(`/businesses/${route.params.businessId}`)
+        const business = response.data;
+
+        businesses.value = [{
           label: business.name,
           value: business.id
-        }))
+        }];
       } catch (error) {
         console.error('Error fetching businesses:', error)
       }

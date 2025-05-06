@@ -208,6 +208,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useBranchManagerStore } from 'stores/branchManager'
+import { api } from 'src/boot/axios'
 
 export default {
   name: 'InventoryPage',
@@ -220,6 +221,7 @@ export default {
     const showDialog = ref(false)
     const isEditing = ref(false)
     const currentItemId = ref(null)
+    const categories = ref([])
 
     const pagination = ref({
       sortBy: 'name',
@@ -303,17 +305,27 @@ export default {
       }
     ]
 
-    const categories = [
-      { label: 'Electronics', value: 1 },
-      { label: 'Clothing', value: 2 },
-      { label: 'Home & Kitchen', value: 4 },
-      { label: 'Office Supplies', value: 5 }
-    ]
-
     const inventoryItems = computed(() => {
       console.log('this is the inventory data ', store.inventory)
       return store.inventory?.data?.data || []
     })
+
+    const fetchCategories = async () => {
+      try {
+        const response = await api.get('/categories')
+        categories.value = response.data.data.map(category => ({
+          label: category.name,
+          value: category.id,
+          description: category.description
+        }))
+      } catch (error) {
+        console.error('Failed to fetch categories:', error)
+        $q.notify({
+          type: 'negative',
+          message: 'Failed to load categories'
+        })
+      }
+    }
 
     const loadData = async () => {
       loading.value = true
@@ -436,8 +448,11 @@ export default {
       }
     }
 
-    onMounted(() => {
-      loadData()
+    onMounted(async () => {
+      await Promise.all([
+        loadData(),
+        fetchCategories()
+      ])
     })
 
     return {

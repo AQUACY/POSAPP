@@ -1,7 +1,7 @@
 <template>
   <q-page padding>
     <div class="row items-center justify-between q-mb-md">
-      <div class="text-h4">Branch Staff</div>
+      <div class="text-h4"> Staff of Branch - {{ branchDetails.data.name }}</div>
       <q-btn
         color="primary"
         icon="add"
@@ -233,10 +233,11 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { api } from 'src/boot/axios'
 import { useQuasar } from 'quasar'
 import { useRoute } from 'vue-router'
+import { useBranchManagerStore } from 'src/stores/branchManager'
 
 export default {
   name: 'BranchStaffPage',
@@ -244,6 +245,7 @@ export default {
   setup () {
     const $q = useQuasar()
     const route = useRoute()
+    const branchStore = useBranchManagerStore()
     const loading = ref(false)
     const staffMembers = ref([])
     const staffDialog = ref(false)
@@ -264,9 +266,9 @@ export default {
 
     const roleOptions = [
       { label: 'All', value: null },
-      { label: 'Manager', value: 'manager' },
+      { label: 'Branch Manager', value: 'branch_manager' },
+      { label: 'Inventory Manager', value: 'inventory_clerk' },
       { label: 'Cashier', value: 'cashier' },
-      { label: 'Staff', value: 'staff' }
     ]
 
     const statusOptions = [
@@ -289,6 +291,10 @@ export default {
       }
       return colors[role] || 'grey'
     }
+
+    const fetchBranchDetails = async () => {
+      await branchStore.fetchBranchDetails(route.params.businessId, route.params.branchId)
+    } 
 
     const fetchStaff = async () => {
       loading.value = true
@@ -417,6 +423,7 @@ export default {
 
     onMounted(() => {
       fetchStaff()
+      fetchBranchDetails()
     })
 
     return {
@@ -430,6 +437,7 @@ export default {
       deleteDialog,
       editingStaff,
       passwordData,
+      branchDetails: computed(() => branchStore.branchDetails),
       getRoleColor,
       openStaffDialog,
       openPasswordDialog,
