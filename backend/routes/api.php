@@ -162,7 +162,7 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/branches/{id}/performance', [AdminController::class, 'getBranchPerformance']);
 
         // Stock management routes
-        Route::post('/inventory/{id}/stock', [AdminController::class, 'addStock']);
+        Route::post('/inventory/{id}/add-stock', [AdminController::class, 'addStock']);
         Route::get('/inventory/{id}/stock-history', [AdminController::class, 'getStockHistory']);
     });
 

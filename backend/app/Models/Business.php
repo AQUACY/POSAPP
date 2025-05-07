@@ -58,8 +58,9 @@ class Business extends Model
 
     public function staff()
     {
-        return $this->hasMany(Staff::class);
+        return $this->hasMany(User::class);
     }
+
 
     public function products()
     {

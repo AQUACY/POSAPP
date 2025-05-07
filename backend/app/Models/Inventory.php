@@ -19,6 +19,7 @@ class Inventory extends Model
         'business_id',
         'branch_id',
         'unit_price',
+        'cost_price',
         'selling_price',
         'quantity',
         'reorder_level',

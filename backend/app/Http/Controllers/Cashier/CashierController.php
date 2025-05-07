@@ -99,6 +99,7 @@ class CashierController extends Controller
                     'discount_amount' => $discount,
                     'tax_amount' => $tax,
                     'total_amount' => $itemTotal,
+                    'sync_status' => 'pending'
                 ]);
 
                 // Update inventory
@@ -400,7 +401,6 @@ class CashierController extends Controller
             'phone' => $request->phone,
             'address' => $request->address,
             'business_id' => $user->business_id,
-            'branch_id' => $user->branch_id,
         ]);
 
         return response()->json([

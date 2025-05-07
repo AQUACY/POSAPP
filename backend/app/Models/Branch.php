@@ -46,7 +46,7 @@ class Branch extends Model
 
     public function staff()
     {
-        return $this->hasMany(Staff::class);
+        return $this->hasMany(User::class);
     }
 
     public function users()

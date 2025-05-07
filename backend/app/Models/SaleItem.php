@@ -15,7 +15,7 @@ class SaleItem extends Model
         'inventory_id',
         'quantity',
         'unit_price',
-        'total_price',
+        'total_amount',
         'discount_amount',
         'tax_amount',
         'sync_status',
@@ -26,7 +26,7 @@ class SaleItem extends Model
     protected $casts = [
         'quantity' => 'decimal:2',
         'unit_price' => 'decimal:2',
-        'total_price' => 'decimal:2',
+        'total_amount' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'created_at' => 'datetime',

@@ -53,7 +53,7 @@
       <!-- Right Side - Cart -->
       <div class="col-4 bg-grey-2 q-pa-md">
         <div class="text-h5 text-weight-bold q-mb-md">Current Order</div>
-        
+
         <!-- Customer Selection with New Customer Button -->
         <div class="row q-mb-md">
           <div class="col-12">
@@ -566,7 +566,7 @@ const processPayment = async () => {
 
     const createdSale = await posService.createSale(businessId.value, branchId.value, saleData)
     console.log('Sale created:', createdSale)
-    
+
     // If payment is not cash, redirect to payment URL
     if (selectedPaymentMethod.value !== PAYMENT_METHODS.CASH) {
       if (createdSale.payment_url) {
@@ -580,7 +580,7 @@ const processPayment = async () => {
         reference: generatePaymentReference()
       })
     }
-    
+
     $q.notify({
       color: 'positive',
       message: 'Order completed successfully',
@@ -695,7 +695,7 @@ const createNewCustomer = async () => {
 const filterCustomers = (val, update, abort) => {
   update(() => {
     const needle = val.toLowerCase()
-    customers.value = customers.value.filter(customer => 
+    customers.value = customers.value.filter(customer =>
       customer.name.toLowerCase().includes(needle) ||
       customer.email.toLowerCase().includes(needle) ||
       customer.phone.includes(needle)
@@ -731,7 +731,7 @@ onMounted(() => {
 
 .product-card {
   transition: all 0.3s ease;
-  
+
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -748,4 +748,4 @@ onMounted(() => {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
-</style> 
+</style>

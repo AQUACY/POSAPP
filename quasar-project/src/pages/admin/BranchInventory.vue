@@ -1,7 +1,14 @@
 <template>
   <q-page padding>
     <div class="row items-center justify-between q-mb-md">
-      <div class="text-h4">Branch Inventory - {{ branchDetails.data.name }}</div>
+      <div class="text-h4">
+        <template v-if="branchDetails?.data">
+          Branch Inventory - {{ branchDetails.data.name }}
+        </template>
+        <template v-else>
+          Branch Inventory - Loading...
+        </template>
+      </div>
       <q-btn
         color="primary"
         icon="add"
@@ -576,6 +583,8 @@ export default {
       }
     }
 
+    const branchName = computed(() => branchStore.branchDetails?.data?.name || 'Loading...')
+
     onMounted(async () => {
       loading.value = true
       try {
@@ -623,7 +632,8 @@ export default {
       getStockStatus,
       getStockStatusColor,
       getChangeTypeColor,
-      branchDetails: computed(() => branchStore.branchDetails)
+      branchDetails: computed(() => branchStore.branchDetails),
+      branchName
     }
   }
 }

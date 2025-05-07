@@ -239,7 +239,12 @@ export default {
       { name: 'address', label: 'Address', field: 'address' },
       { name: 'phone', label: 'Phone', field: 'phone' },
       { name: 'email', label: 'Email', field: 'email' },
-      { name: 'staff_count', label: 'Staff', field: row => row.staff?.length || 0, sortable: true },
+      { 
+        name: 'staff_count', 
+        label: 'Staff', 
+        field: row => row.business?.staff?.filter(staff => staff.branch_id === row.id).length || 0, 
+        sortable: true 
+      },
       { name: 'inventory_count', label: 'Inventory', field: row => row.inventory?.length || 0, sortable: true },
       { name: 'sales_count', label: 'Sales', field: row => row.sales?.length || 0, sortable: true },
       { name: 'actions', label: 'Actions', field: 'actions', align: 'right' }

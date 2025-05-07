@@ -202,10 +202,40 @@ class AdminController extends Controller
     public function listInventoryofBusiness(Request $request)
     {
         $businessId = $request->route('businessId');
-        $inventory = Inventory::with(['category', 'business', 'branch'])
-            ->where('business_id', $businessId)
-            ->get();
-        return response()->json(InventoryResource::collection($inventory));
+        $query = Inventory::with(['category', 'business', 'branch'])
+            ->where('business_id', $businessId);
+
+        // Apply search filter if provided
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%")
+                  ->orWhere('barcode', 'like', "%{$search}%");
+            });
+        }
+
+        // Get total count before pagination
+        $total = $query->count();
+
+        // Apply sorting
+        if ($request->has('sort_by')) {
+            $direction = $request->descending ? 'desc' : 'asc';
+            $query->orderBy($request->sort_by, $direction);
+        } else {
+            $query->orderBy('name', 'asc');
+        }
+
+        // Apply pagination
+        $perPage = $request->input('per_page', 10);
+        $page = $request->input('page', 1);
+        $inventory = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => InventoryResource::collection($inventory),
+            'total' => $total
+        ]);
     }
 
     public function deleteInventory($id)
@@ -345,10 +375,38 @@ class AdminController extends Controller
     public function listCategoriesofBusiness(Request $request)
     {
         $businessId = $request->route('businessId');
-        $categories = Category::with(['business', 'inventories'])
-            ->where('business_id', $businessId)
-            ->get();
-        return response()->json(CategoryResource::collection($categories));
+        $query = Category::with(['business', 'inventories'])
+            ->where('business_id', $businessId);
+
+        // Apply search filter if provided
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        // Get total count before pagination
+        $total = $query->count();
+
+        // Apply sorting
+        if ($request->has('sort_by')) {
+            $direction = $request->descending ? 'desc' : 'asc';
+            $query->orderBy($request->sort_by, $direction);
+        } else {
+            $query->orderBy('name', 'asc');
+        }
+
+        // Apply pagination
+        $perPage = $request->input('per_page', 10);
+        $page = $request->input('page', 1);
+        $categories = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => CategoryResource::collection($categories),
+            'total' => $total
+        ]);
     }
 
     public function listCategoriesofBranch(Request $request)

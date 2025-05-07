@@ -149,178 +149,173 @@
   </q-page>
 </template>
 
-<script>
+<script setup name="CategoriesPage">
 import { ref, onMounted } from 'vue'
-import { api } from 'src/boot/axios'
 import { useQuasar } from 'quasar'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { api } from 'boot/axios'
 
-export default {
-  name: 'CategoriesPage',
+const $q = useQuasar()
+const route = useRoute()
+const router = useRouter()
 
-  setup () {
-    const $q = useQuasar()
-    const router = useRouter()
-    const loading = ref(false)
-    const categories = ref([])
-    const categoryDialog = ref(false)
-    const deleteDialog = ref(false)
-    const editingCategory = ref({
-      name: '',
-      description: '',
-      is_active: true
-    })
-    const categoryToDelete = ref(null)
+const categories = ref([])
+const loading = ref(false)
+const categoryDialog = ref(false)
+const editingCategory = ref({})
+const categoryToDelete = ref(null)
+const deleteDialog = ref(false)
 
-    const columns = [
-      { name: 'name', label: 'Name', field: 'name', sortable: true },
-      { name: 'description', label: 'Description', field: 'description' },
-      { name: 'status', label: 'Status', field: 'is_active' },
-      { name: 'actions', label: 'Actions', field: 'actions', align: 'right' }
-    ]
+const statusOptions = [
+  { label: 'All', value: null },
+  { label: 'Active', value: true },
+  { label: 'Inactive', value: false }
+]
 
-    const statusOptions = [
-      { label: 'All', value: null },
-      { label: 'Active', value: true },
-      { label: 'Inactive', value: false }
-    ]
+const columns = [
+  {
+    name: 'name',
+    required: true,
+    label: 'Name',
+    align: 'left',
+    field: row => row.name,
+    sortable: true
+  },
+  {
+    name: 'description',
+    label: 'Description',
+    align: 'left',
+    field: row => row.description
+  },
+  {
+    name: 'status',
+    label: 'Status',
+    align: 'left',
+    field: row => row.is_active
+  },
+  {
+    name: 'actions',
+    label: 'Actions',
+    align: 'right'
+  }
+]
 
-    const filter = ref({
-      search: '',
-      status: null
-    })
+const filter = ref({
+  search: '',
+  status: null
+})
 
-    const pagination = ref({
-      sortBy: 'name',
-      descending: false,
-      page: 1,
-      rowsPerPage: 10,
-      rowsNumber: 0
-    })
+const pagination = ref({
+  sortBy: 'name',
+  descending: false,
+  page: 1,
+  rowsPerPage: 10,
+  rowsNumber: 0
+})
 
-    const fetchCategories = async () => {
-      loading.value = true
-      try {
-        const response = await api.get('/categories', {
-          params: {
-            ...filter.value,
-            page: pagination.value.page,
-            per_page: pagination.value.rowsPerPage,
-            sort_by: pagination.value.sortBy,
-            descending: pagination.value.descending
-          }
-        })
-        categories.value = response.data.data
-        pagination.value.rowsNumber = response.data.total
-      } catch (error) {
-        console.error('Error fetching categories:', error)
-        $q.notify({
-          color: 'negative',
-          message: 'Failed to fetch categories',
-          icon: 'error'
-        })
-      } finally {
-        loading.value = false
+const fetchCategories = async () => {
+  loading.value = true
+  try {
+    const response = await api.get(`/business/${route.params.businessId}/categories`, {
+      params: {
+        ...filter.value,
+        page: pagination.value.page,
+        per_page: pagination.value.rowsPerPage,
+        sort_by: pagination.value.sortBy,
+        descending: pagination.value.descending
       }
-    }
-
-    const openCategoryDialog = (category = null) => {
-      if (category) {
-        editingCategory.value = { ...category }
-      } else {
-        editingCategory.value = {
-          name: '',
-          description: '',
-          is_active: true
-        }
-      }
-      categoryDialog.value = true
-    }
-
-    const onSubmit = async () => {
-      try {
-        if (editingCategory.value.id) {
-          await api.put(`/categories/${editingCategory.value.id}`, editingCategory.value)
-        } else {
-          await api.post('/categories', editingCategory.value)
-        }
-        categoryDialog.value = false
-        fetchCategories()
-        $q.notify({
-          color: 'positive',
-          message: `Category ${editingCategory.value.id ? 'updated' : 'created'} successfully`,
-          icon: 'check'
-        })
-      } catch (error) {
-        console.error('Error saving category:', error)
-        $q.notify({
-          color: 'negative',
-          message: 'Failed to save category',
-          icon: 'error'
-        })
-      }
-    }
-
-    const confirmDelete = (category) => {
-      categoryToDelete.value = category
-      deleteDialog.value = true
-    }
-
-    const onDelete = async () => {
-      try {
-        await api.delete(`/categories/${categoryToDelete.value.id}`)
-        fetchCategories()
-        $q.notify({
-          color: 'positive',
-          message: 'Category deleted successfully',
-          icon: 'check'
-        })
-      } catch (error) {
-        console.error('Error deleting category:', error)
-        $q.notify({
-          color: 'negative',
-          message: 'Failed to delete category',
-          icon: 'error'
-        })
-      }
-    }
-
-    const viewItems = (category) => {
-      router.push(`/admin/inventory?category_id=${category.id}`)
-    }
-
-    const onRequest = (props) => {
-      pagination.value = props.pagination
-      fetchCategories()
-    }
-
-    const onSearch = () => {
-      pagination.value.page = 1
-      fetchCategories()
-    }
-
-    onMounted(() => {
-      fetchCategories()
     })
-
-    return {
-      loading,
-      categories,
-      columns,
-      statusOptions,
-      filter,
-      pagination,
-      categoryDialog,
-      deleteDialog,
-      editingCategory,
-      openCategoryDialog,
-      onSubmit,
-      confirmDelete,
-      onDelete,
-      viewItems,
-      onRequest,
-      onSearch
-    }
+    categories.value = response.data.data
+    pagination.value.rowsNumber = response.data.total
+  } catch (error) {
+    console.error('Error fetching categories:', error)
+    $q.notify({
+      color: 'negative',
+      message: 'Failed to fetch categories',
+      icon: 'error'
+    })
+  } finally {
+    loading.value = false
   }
 }
-</script> 
+
+const openCategoryDialog = (category = null) => {
+  if (category) {
+    editingCategory.value = { ...category }
+  } else {
+    editingCategory.value = {
+      name: '',
+      description: '',
+      is_active: true,
+      business_id: route.params.businessId
+    }
+  }
+  categoryDialog.value = true
+}
+
+const onSubmit = async () => {
+  try {
+    if (editingCategory.value.id) {
+      await api.put(`/categories/${editingCategory.value.id}`, editingCategory.value)
+    } else {
+      await api.post('/categories', editingCategory.value)
+    }
+    categoryDialog.value = false
+    fetchCategories()
+    $q.notify({
+      color: 'positive',
+      message: `Category ${editingCategory.value.id ? 'updated' : 'created'} successfully`,
+      icon: 'check'
+    })
+  } catch (error) {
+    console.error('Error saving category:', error)
+    $q.notify({
+      color: 'negative',
+      message: 'Failed to save category',
+      icon: 'error'
+    })
+  }
+}
+
+const confirmDelete = (category) => {
+  categoryToDelete.value = category
+  deleteDialog.value = true
+}
+
+const onDelete = async () => {
+  try {
+    await api.delete(`/categories/${categoryToDelete.value.id}`)
+    fetchCategories()
+    $q.notify({
+      color: 'positive',
+      message: 'Category deleted successfully',
+      icon: 'check'
+    })
+  } catch (error) {
+    console.error('Error deleting category:', error)
+    $q.notify({
+      color: 'negative',
+      message: 'Failed to delete category',
+      icon: 'error'
+    })
+  }
+}
+
+const viewItems = (category) => {
+  router.push(`/business/${route.params.businessId}/inventory?category_id=${category.id}`)
+}
+
+const onRequest = (props) => {
+  pagination.value = props.pagination
+  fetchCategories()
+}
+
+const onSearch = () => {
+  pagination.value.page = 1
+  fetchCategories()
+}
+
+onMounted(() => {
+  fetchCategories()
+})
+</script>

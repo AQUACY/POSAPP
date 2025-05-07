@@ -13,7 +13,8 @@ class StockChange extends Model
     protected $fillable = [
         'inventory_id',
         'quantity',
-        'type',
+        'change_type',
+        'reason',
         'reference_type',
         'reference_id',
         'notes',

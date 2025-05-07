@@ -1,7 +1,14 @@
 <template>
   <q-page padding>
     <div class="row items-center justify-between q-mb-md">
-      <div class="text-h4"> Staff of Branch - {{ branchDetails.data.name }}</div>
+      <div class="text-h4">
+        <template v-if="branchDetails?.data">
+          Staff of Branch - {{ branchDetails.data.name }}
+        </template>
+        <template v-else>
+          Staff of Branch - Loading...
+        </template>
+      </div>
       <q-btn
         color="primary"
         icon="add"

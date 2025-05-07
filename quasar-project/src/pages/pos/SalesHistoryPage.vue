@@ -1,6 +1,6 @@
 <template>
   <q-page class="q-pa-md">
-    <div class="text-h5 q-mb-md">Sales History</div>
+    <div class="text-h5 q-mb-md">Sales History Alex</div>
 
     <!-- Search and Filter -->
     <div class="row q-col-gutter-md q-mb-md">

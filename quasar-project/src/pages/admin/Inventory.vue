@@ -150,8 +150,8 @@
             />
 
             <q-input
-              v-model.number="editingItem.price"
-              label="Price"
+              v-model.number="editingItem.unit_price"
+              label="Unit Price"
               type="number"
               :rules="[
                 val => !!val || 'Price is required',
@@ -161,7 +161,18 @@
             />
 
             <q-input
-              v-model.number="editingItem.stock_level"
+              v-model.number="editingItem.cost_price"
+              label="Cost Price"
+              type="number"
+              :rules="[
+                val => !!val || 'Cost price is required',
+                val => val > 0 || 'Cost price must be greater than 0'
+              ]"
+              outlined
+            />
+
+            <q-input
+              v-model.number="editingItem.quantity"
               label="Stock Level"
               type="number"
               :rules="[
@@ -219,7 +230,7 @@
         <q-card-section class="q-pt-none">
           <q-form @submit="onStockSubmit" class="q-gutter-md">
             <div class="text-subtitle2">Current Stock: {{ selectedItem?.stock_level }}</div>
-            
+
             <q-input
               v-model.number="stockAdjustment.quantity"
               label="Adjustment Quantity"
@@ -229,7 +240,7 @@
             />
 
             <q-select
-              v-model="stockAdjustment.type"
+              v-model="stockAdjustment.change_type"
               :options="adjustmentTypes"
               label="Adjustment Type"
               :rules="[val => !!val || 'Type is required']"
@@ -297,16 +308,18 @@ export default {
       name: '',
       sku: '',
       description: '',
-      price: 0,
-      stock_level: 0,
+      unit_price: 0,
+      cost_price: 0,
+      quantity: 0,
       reorder_level: 0,
       category_id: null,
-      branch_id: null
+      branch_id: null,
+      business_id: null
     })
 
     const stockAdjustment = ref({
       quantity: 0,
-      type: 'add',
+      change_type: 'addition',
       reason: ''
     })
 
@@ -315,9 +328,34 @@ export default {
       { name: 'sku', label: 'SKU', field: 'sku', sortable: true },
       { name: 'category', label: 'Category', field: row => row.category?.name, sortable: true },
       { name: 'branch', label: 'Branch', field: row => row.branch?.name, sortable: true },
-      { name: 'price', label: 'Price', field: 'price', sortable: true, format: val => `$${val.toFixed(2)}` },
-      { name: 'stock_level', label: 'Stock Level', field: 'stock_level', sortable: true },
-      { name: 'reorder_level', label: 'Reorder Level', field: 'reorder_level', sortable: true },
+      { 
+        name: 'unit_price', 
+        label: 'Unit Price', 
+        field: 'unit_price', 
+        sortable: true, 
+        format: val => `$${Number(val).toFixed(2)}` 
+      },
+      { 
+        name: 'cost_price', 
+        label: 'Cost Price', 
+        field: 'cost_price', 
+        sortable: true, 
+        format: val => `$${Number(val).toFixed(2)}` 
+      },
+      { 
+        name: 'quantity', 
+        label: 'Stock Level', 
+        field: 'quantity', 
+        sortable: true,
+        format: val => Number(val).toFixed(2)
+      },
+      { 
+        name: 'reorder_level', 
+        label: 'Reorder Level', 
+        field: 'reorder_level', 
+        sortable: true,
+        format: val => Number(val).toFixed(2)
+      },
       { name: 'actions', label: 'Actions', field: 'actions', align: 'right' }
     ]
 
@@ -329,8 +367,9 @@ export default {
     ]
 
     const adjustmentTypes = [
-      { label: 'Add Stock', value: 'add' },
-      { label: 'Remove Stock', value: 'remove' }
+      { label: 'Add Stock', value: 'addition' },
+      { label: 'Remove Stock', value: 'reduction' },
+      { label: 'Adjust Stock', value: 'adjustment' }
     ]
 
     const filter = ref({
@@ -351,17 +390,17 @@ export default {
     const fetchItems = async () => {
       loading.value = true
       try {
-        const response = await api.get('/inventory', {
-          params: {
-            ...filter.value,
-            page: pagination.value.page,
-            per_page: pagination.value.rowsPerPage,
-            sort_by: pagination.value.sortBy,
-            descending: pagination.value.descending
-          }
-        })
-        items.value = response.data.data
-        pagination.value.rowsNumber = response.data.total
+              const response = await api.get(`/business/${route.params.businessId}/inventory`, {
+        params: {
+          ...filter.value,
+          page: pagination.value.page,
+          per_page: pagination.value.rowsPerPage,
+          sort_by: pagination.value.sortBy,
+          descending: pagination.value.descending
+        }
+      })
+      items.value = response.data.data
+      pagination.value.rowsNumber = response.data.total
       } catch (error) {
         console.error('Error fetching items:', error)
         $q.notify({
@@ -376,7 +415,7 @@ export default {
 
     const fetchBranches = async () => {
       try {
-        const response = await api.get('/branches')
+        const response = await api.get(`/business/${route.params.businessId}/branches`)
         branches.value = response.data.map(branch => ({
           label: branch.name,
           value: branch.id
@@ -388,7 +427,7 @@ export default {
 
     const fetchCategories = async () => {
       try {
-        const response = await api.get('/categories')
+        const response = await api.get(`/business/${route.params.businessId}/categories`)
         categories.value = response.data.map(category => ({
           label: category.name,
           value: category.id
@@ -406,11 +445,13 @@ export default {
           name: '',
           sku: '',
           description: '',
-          price: 0,
-          stock_level: 0,
+          unit_price: 0,
+          cost_price: 0,
+          quantity: 0,
           reorder_level: 0,
           category_id: null,
-          branch_id: filter.value.branch
+          branch_id: filter.value.branch,
+          business_id: route.params.businessId
         }
       }
       itemDialog.value = true
@@ -420,7 +461,7 @@ export default {
       selectedItem.value = item
       stockAdjustment.value = {
         quantity: 0,
-        type: 'add',
+        change_type: 'addition',
         reason: ''
       }
       stockDialog.value = true
@@ -452,7 +493,7 @@ export default {
 
     const onStockSubmit = async () => {
       try {
-        await api.post(`/inventory/${selectedItem.value.id}/adjust-stock`, stockAdjustment.value)
+        await api.post(`/inventory/${selectedItem.value.id}/add-stock`, stockAdjustment.value)
         stockDialog.value = false
         fetchItems()
         $q.notify({
@@ -544,4 +585,4 @@ export default {
     }
   }
 }
-</script> 
+</script>
