@@ -45,6 +45,7 @@ export const useInventoryStore = defineStore('inventory', {
     async fetchRecentActivities() {
       try {
         const response = await api.get('/dashboard/activities')
+        console.log('Recent activities response:', response.data)
         this.recentActivities = response.data.data
       } catch (error) {
         console.error('Error fetching recent activities:', error)
@@ -79,7 +80,8 @@ export const useInventoryStore = defineStore('inventory', {
       this.loading = true
       try {
         const response = await api.get('/inventory', { params })
-        this.inventoryItems = response.data.data
+        this.inventoryItems = response.data.data.data
+        console.log(this.inventoryItems.data)
       } catch (error) {
         console.error('Error fetching inventory items:', error)
         this.error = error.message
@@ -90,17 +92,16 @@ export const useInventoryStore = defineStore('inventory', {
     },
 
     // Update Inventory Quantity
-    async updateInventoryQuantity({ id, type, quantity, unit_price, notes }) {
+    async updateInventoryQuantity({ id, change_type, quantity, reason }) {
       try {
-        const response = await api.put(`/inventory/${id}/quantity`, {
-          type,
+        const response = await api.post(`/inventory/${id}/add-stock`, {
+          change_type,
           quantity,
-          unit_price,
-          notes
+          reason
         })
 
         // Update local state
-        const updatedItem = response.data.data.item
+        const updatedItem = response.data.data.inventory
         const index = this.inventoryItems.findIndex(item => item.id === id)
         if (index !== -1) {
           this.inventoryItems[index] = updatedItem
@@ -192,6 +193,17 @@ export const useInventoryStore = defineStore('inventory', {
       this.inventoryItems = []
       this.loading = false
       this.error = null
+    },
+
+    // Get inventory report
+    async fetchInventoryReport(params = {}) {
+      try {
+        const response = await api.get('/inventory/report', { params })
+        return response.data.data
+      } catch (error) {
+        console.error('Error fetching inventory report:', error)
+        throw error
+      }
     }
   }
 }) 

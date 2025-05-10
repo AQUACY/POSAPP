@@ -16,6 +16,10 @@ export const branchManagerService = {
     return api.get(`/branch/${businessId}/${branchId}/branch_manager/branch`)
   },
 
+  getBranchDetailsforInventory(businessId, branchId) {
+    return api.get(`/getbranch/${businessId}/${branchId}`)
+  },
+
   updateBranchDetails(businessId, branchId, data) {
     return api.put(`/branch/${businessId}/${branchId}/branch_manager/branch`, data)
   },

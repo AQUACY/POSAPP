@@ -22,6 +22,7 @@ class StockRequest extends Model
         'notes',
         'business_id',
         'branch_id',
+        'warehouse_id',
         'requested_by',
         'approved_by',
         'sync_status',
@@ -43,6 +44,11 @@ class StockRequest extends Model
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
     }
 
     public function requestedBy()

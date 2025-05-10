@@ -414,17 +414,52 @@ class BranchManagerController extends BaseController
      *
      * @param int $businessId
      * @param int $branchId
+     * @param int $warehouseId
      * @return JsonResponse
      */
-    public function getStockRequests(int $businessId, int $branchId): JsonResponse
+    public function getStockRequests(int $businessId, int $branchId, int $warehouseId): JsonResponse
     {
-        $stockRequests = StockRequest::where('branch_id', $branchId)
-            ->where('business_id', $businessId)
-            ->with(['items.inventory', 'warehouse', 'requestedBy', 'approvedBy'])
-            ->latest()
-            ->paginate(20);
+        try {
+            $stockRequests = StockRequest::where('branch_id', $branchId)
+                ->where('business_id', $businessId)
+                ->where('warehouse_id', $warehouseId)
+                ->with([
+                    'items' => function($query) {
+                        $query->with(['inventories' => function($query) {
+                            $query->select('id', 'name', 'quantity', 'unit');
+                        }]);
+                    },
+                    'warehouse',
+                    'requestedBy',
+                    'approvedBy'
+                ])
+                ->latest()
+                ->paginate(20);
 
-        return $this->sendResponse($stockRequests, 'Stock requests retrieved successfully');
+            // Transform the response to include available quantity
+            $stockRequests->getCollection()->transform(function ($request) {
+                $request->items->transform(function ($item) {
+                    if ($item->inventory) {
+                        $item->name = $item->inventory->name;
+                        $item->available_quantity = $item->inventory->quantity;
+                        $item->unit = $item->inventory->unit;
+                    }
+                    return $item;
+                });
+                return $request;
+            });
+
+            return $this->sendResponse($stockRequests, 'Stock requests retrieved successfully');
+        } catch (\Exception $e) {
+            \Log::error('Error fetching stock requests', [
+                'error' => $e->getMessage(),
+                'business_id' => $businessId,
+                'branch_id' => $branchId,
+                'warehouse_id' => $warehouseId
+            ]);
+            
+            return $this->sendError('Failed to retrieve stock requests', [], 500);
+        }
     }
 
     /**
@@ -433,9 +468,10 @@ class BranchManagerController extends BaseController
      * @param Request $request
      * @param int $businessId
      * @param int $branchId
+     * @param int $warehouseId
      * @return JsonResponse
      */
-    public function createStockRequest(Request $request, int $businessId, int $branchId): JsonResponse
+    public function createStockRequest(Request $request, int $businessId, int $branchId, int $warehouseId): JsonResponse
     {
         $validated = $request->validate([
             'warehouse_id' => ['required', 'exists:warehouses,id', function ($attribute, $value, $fail) use ($businessId) {
@@ -460,7 +496,7 @@ class BranchManagerController extends BaseController
             $stockRequest = StockRequest::create([
                 'business_id' => $businessId,
                 'branch_id' => $branchId,
-                'warehouse_id' => $validated['warehouse_id'],
+                'warehouse_id' => $warehouseId,
                 'status' => 'pending',
                 'notes' => $validated['notes'] ?? null,
                 'requested_by' => auth()->id()

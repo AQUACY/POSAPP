@@ -39,6 +39,18 @@
         <q-item
           v-ripple
           clickable
+          :to="`/inventory/${$route.params.businessId}/${$route.params.branchId}/dashboard`"
+          exact
+        >
+          <q-item-section avatar>
+            <q-icon name="dashboard" />
+          </q-item-section>
+          <q-item-section>Dashboard</q-item-section>
+        </q-item>
+
+        <q-item
+          v-ripple
+          clickable
           :to="`/inventory/${$route.params.businessId}/${$route.params.branchId}/inventory`"
           exact
         >

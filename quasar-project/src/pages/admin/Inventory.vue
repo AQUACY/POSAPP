@@ -192,6 +192,15 @@
             />
 
             <q-select
+              v-model="editingItem.warehouse_id"
+              :options="warehouses"
+              label="Warehouse"
+              outlined
+              emit-value
+              map-options
+            />
+
+            <q-select
               v-model="editingItem.category_id"
               :options="categories"
               label="Category"
@@ -299,6 +308,7 @@ export default {
     const items = ref([])
     const branches = ref([])
     const categories = ref([])
+    const warehouses = ref([])
     const itemDialog = ref(false)
     const stockDialog = ref(false)
     const deleteDialog = ref(false)
@@ -312,6 +322,7 @@ export default {
       cost_price: 0,
       quantity: 0,
       reorder_level: 0,
+      warehouse_id: null,
       category_id: null,
       branch_id: null,
       business_id: null
@@ -424,11 +435,23 @@ export default {
         console.error('Error fetching branches:', error)
       }
     }
+    const fetchWarehouses = async () => {
+      try {
+        const response = await api.get(`/business/${route.params.businessId}/warehouses`)
+        warehouses.value = response.data.map(warehouse => ({
+          label: warehouse.name,
+          value: warehouse.id
+        }))
+
+        console.log(warehouses.value)
+      } catch (error) {
+        console.error('Error fetching warehouses:', error)}
+      }
 
     const fetchCategories = async () => {
       try {
         const response = await api.get(`/business/${route.params.businessId}/categories`)
-        categories.value = response.data.map(category => ({
+        categories.value = response.data.data.map(category => ({
           label: category.name,
           value: category.id
         }))
@@ -450,6 +473,7 @@ export default {
           quantity: 0,
           reorder_level: 0,
           category_id: null,
+          warehouse_id: null,
           branch_id: filter.value.branch,
           business_id: route.params.businessId
         }
@@ -470,9 +494,9 @@ export default {
     const onSubmit = async () => {
       try {
         if (editingItem.value.id) {
-          await api.put(`/inventory/${editingItem.value.id}`, editingItem.value)
+          await api.put(`/admin/inventory/${editingItem.value.id}`, editingItem.value)
         } else {
-          await api.post('/inventory', editingItem.value)
+          await api.post('/admin/inventory', editingItem.value)
         }
         itemDialog.value = false
         fetchItems()
@@ -493,7 +517,7 @@ export default {
 
     const onStockSubmit = async () => {
       try {
-        await api.post(`/inventory/${selectedItem.value.id}/add-stock`, stockAdjustment.value)
+        await api.post(`/admin/inventory/${selectedItem.value.id}/add-stock`, stockAdjustment.value)
         stockDialog.value = false
         fetchItems()
         $q.notify({
@@ -518,7 +542,7 @@ export default {
 
     const onDelete = async () => {
       try {
-        await api.delete(`/inventory/${selectedItem.value.id}`)
+        await api.delete(`/admin/inventory/${selectedItem.value.id}`)
         fetchItems()
         $q.notify({
           color: 'positive',
@@ -555,6 +579,8 @@ export default {
       fetchItems()
       fetchBranches()
       fetchCategories()
+      fetchWarehouses()
+
     })
 
     return {
@@ -562,6 +588,7 @@ export default {
       items,
       branches,
       categories,
+      warehouses,
       columns,
       stockOptions,
       adjustmentTypes,

@@ -13,7 +13,7 @@ class StockRequestItem extends Model
     protected $fillable = [
         'stock_request_id',
         'inventory_id',
-        'quantity',
+        'quantity_requested',
         'notes',
         'sync_status',
         'last_sync_at',

@@ -73,6 +73,21 @@
         </q-td>
       </template>
 
+      <!-- Stock Requests Column -->
+      <template v-slot:body-cell-stock_request_count="props">
+        <q-td :props="props">
+          <q-btn
+            flat
+            dense
+            class="text-primary"
+            :label="props.row.stock_requests_count || 0"
+            @click="viewStockRequests(props.row)"
+          >
+            <q-tooltip>View Stock Requests</q-tooltip>
+          </q-btn>
+        </q-td>
+      </template>
+
       <!-- Actions Column -->
       <template v-slot:body-cell-actions="props">
         <q-td :props="props" class="q-gutter-sm">
@@ -193,12 +208,15 @@
 import { ref, onMounted } from 'vue'
 import { api } from 'src/boot/axios'
 import { useQuasar } from 'quasar'
+import { useRouter, useRoute } from 'vue-router'
 
 export default {
   name: 'WarehousesPage',
 
   setup () {
     const $q = useQuasar()
+    const router = useRouter()
+    const route = useRoute()
     const loading = ref(false)
     const warehouses = ref([])
     const businesses = ref([])
@@ -221,6 +239,7 @@ export default {
       { name: 'phone', label: 'Phone', field: 'phone' },
       { name: 'email', label: 'Email', field: 'email' },
       { name: 'status', label: 'Status', field: 'is_active' },
+      { name: 'stock_request_count', label: 'Stock Requests', field: 'stock_request_count' },
       { name: 'actions', label: 'Actions', field: 'actions', align: 'right' }
     ]
 
@@ -269,7 +288,9 @@ export default {
         loading.value = false
       }
     }
-
+    const viewStockRequests = (warehouse) => {
+      router.push(`/business/${route.params.businessId}/warehouse/${warehouse.id}/stock-requests`)
+    }
     const fetchBusinesses = async () => {
       try {
         const response = await api.get('/businesses')
@@ -382,6 +403,7 @@ export default {
       confirmDelete,
       onDelete,
       onRequest,
+      viewStockRequests,
       onSearch,
       isValidEmail
     }

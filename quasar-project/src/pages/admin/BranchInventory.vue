@@ -422,7 +422,7 @@ export default {
     const fetchCategories = async () => {
       try {
         const response = await api.get(`/business/${route.params.businessId}/categories`)
-        categories.value = response.data.map(category => ({
+        categories.value = response.data.data.map(category => ({
           label: category.name,
           value: category.id
         }))
@@ -485,7 +485,7 @@ export default {
         if (editingItem.value.id) {
           await api.put(`/admin/inventory/${editingItem.value.id}`, editingItem.value)
         } else {
-          await api.post('/inventory', editingItem.value)
+          await api.post('/admin/inventory', editingItem.value)
         }
         inventoryDialog.value = false
         fetchInventory()
@@ -506,7 +506,7 @@ export default {
 
     const onStockSubmit = async () => {
       try {
-        await api.post(`/inventory/${editingItem.value.id}/stock`, stockData.value)
+        await api.post(`/inventory/${editingItem.value.id}/add-stock`, stockData.value)
         stockDialog.value = false
         fetchInventory()
         $q.notify({

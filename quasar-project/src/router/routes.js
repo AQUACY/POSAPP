@@ -28,6 +28,10 @@ const routes = [
         path: 'branch/:branchId/staff',
         component: () => import('pages/admin/BranchStaff.vue'),
       },
+      {
+        path: 'warehouse/:warehouseId/stock-requests',
+        component: () => import('pages/admin/StockRequests.vue'),
+      },
       { path: 'warehouses', component: () => import('pages/admin/Warehouses.vue') },
       { path: 'inventory', component: () => import('pages/admin/Inventory.vue') },
       { path: 'categories', component: () => import('pages/admin/Categories.vue') },
@@ -109,12 +113,12 @@ const routes = [
         path: 'inventory',
         name: 'inventory-list',
         component: () => import('pages/inventory/Inventory.vue')
+      },
+      {
+        path: 'reports',
+        name: 'inventory-reports',
+        component: () => import('pages/inventory/Reports.vue')
       }
-      // {
-      //   path: 'reports',
-      //   name: 'inventory-reports',
-      //   component: () => import('pages/inventory/Reports.vue')
-      // }
     ]
   },
   // Branch Manager routes

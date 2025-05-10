@@ -73,6 +73,16 @@
           >
             <q-tooltip>Delete Item</q-tooltip>
           </q-btn>
+          <q-btn
+            flat
+            round
+            color="warning"
+            icon="add_shopping_cart"
+            size="sm"
+            @click="openRequestStockDialog(props.row)"
+          >
+            <q-tooltip>Request Stock</q-tooltip>
+          </q-btn>
         </q-td>
       </template>
     </q-table>
@@ -200,6 +210,53 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Request Stock Dialog -->
+    <q-dialog v-model="showRequestStockDialog" persistent>
+      <q-card style="min-width: 350px">
+        <q-card-section>
+          <div class="text-h6">Request Stock</div>
+        </q-card-section>
+
+        <q-card-section>
+          <q-form @submit="onSubmitStockRequest" class="q-gutter-md">
+            <q-select
+              v-model="stockRequestForm.warehouse_id"
+              label="Warehouse"
+              :options="warehouses"
+              :rules="[
+                val => !!val || 'Warehouse is required',
+                val => val > 0 || 'Warehouse must be greater than 0'
+              ]"
+              outlined
+            />
+
+            <q-input
+              v-model="stockRequestForm.quantity"
+              label="Requested Quantity"
+              type="number"
+              :rules="[
+                val => !!val || 'Quantity is required',
+                val => val > 0 || 'Quantity must be greater than 0'
+              ]"
+              outlined
+            />
+
+            <q-input
+              v-model="stockRequestForm.notes"
+              label="Notes"
+              type="textarea"
+              outlined
+            />
+          </q-form>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="primary" v-close-popup />
+          <q-btn flat label="Submit Request" color="primary" @click="onSubmitStockRequest" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -220,8 +277,15 @@ export default {
     const filter = ref('')
     const showDialog = ref(false)
     const isEditing = ref(false)
+    const warehouses = ref([])
     const currentItemId = ref(null)
     const categories = ref([])
+    const showRequestStockDialog = ref(false)
+    const selectedItem = ref(null)
+    const stockRequestForm = ref({
+      quantity: 0,
+      notes: ''
+    })
 
     const pagination = ref({
       sortBy: 'name',
@@ -312,7 +376,7 @@ export default {
 
     const fetchCategories = async () => {
       try {
-        const response = await api.get('/categories')
+        const response = await api.get('/categoriesforbusiness')
         categories.value = response.data.data.map(category => ({
           label: category.name,
           value: category.id,
@@ -324,6 +388,28 @@ export default {
           type: 'negative',
           message: 'Failed to load categories'
         })
+      }
+    }
+
+    const loadWarehouses = async () => {
+      try {
+        const { businessId, branchId } = route.params
+        const response = await api.get(`/branch/${businessId}/${branchId}/branch_manager/warehouses`)
+        if (response.data?.data) {
+          warehouses.value = [{
+            label: response.data.data.name,
+            value: response.data.data.id
+          }]
+        } else {
+          warehouses.value = []
+        }
+      } catch (error) {
+        console.error('Failed to fetch warehouses:', error)
+        $q.notify({
+          type: 'negative',
+          message: 'Failed to load warehouses'
+        })
+        warehouses.value = []
       }
     }
 
@@ -448,10 +534,49 @@ export default {
       }
     }
 
+    const openRequestStockDialog = (item) => {
+      selectedItem.value = item
+      stockRequestForm.value = {
+        quantity: 0,
+        warehouse_id: warehouses.value[0]?.value || null,
+        notes: ''
+      }
+      showRequestStockDialog.value = true
+    }
+
+    const onSubmitStockRequest = async () => {
+      try {
+        const { businessId, branchId } = route.params
+        const warehouseId = stockRequestForm.value.warehouse_id
+        await api.post(`/branch/${businessId}/${branchId}/branch_manager/warehouse/${warehouseId}/stock-requests`, {
+          warehouse_id: warehouseId,
+          items: [{
+            inventory_id: selectedItem.value.id,
+            quantity_requested: stockRequestForm.value.quantity,
+            notes: stockRequestForm.value.notes
+          }],
+          notes: stockRequestForm.value.notes
+        })
+
+        $q.notify({
+          type: 'positive',
+          message: 'Stock request submitted successfully'
+        })
+        showRequestStockDialog.value = false
+      } catch (error) {
+        console.error('Failed to submit stock request:', error)
+        $q.notify({
+          type: 'negative',
+          message: error.response?.data?.message || 'Failed to submit stock request'
+        })
+      }
+    }
+
     onMounted(async () => {
       await Promise.all([
         loadData(),
-        fetchCategories()
+        fetchCategories(),
+        loadWarehouses()
       ])
     })
 
@@ -465,12 +590,17 @@ export default {
       categories,
       pagination,
       inventoryItems,
+      warehouses,
       onRequest,
       openAddDialog,
       openEditDialog,
       onSubmit,
       handleDelete,
-      loadData
+      loadData,
+      showRequestStockDialog,
+      stockRequestForm,
+      openRequestStockDialog,
+      onSubmitStockRequest
     }
   }
 }

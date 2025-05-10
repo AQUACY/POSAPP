@@ -1,0 +1,428 @@
+<template>
+  <q-page padding>
+    <div class="row q-mb-md items-center justify-between">
+      <div class="text-h5">Stock Requests</div>
+      <q-btn color="primary" icon="add" label="New Request" @click="openRequestDialog()" />
+    </div>
+
+    <!-- Filters -->
+    <div class="row q-col-gutter-md q-mb-md">
+      <div class="col-12 col-md-3">
+        <q-select
+          v-model="filters.status"
+          :options="statusOptions"
+          label="Status"
+          emit-value
+          map-options
+          clearable
+          @update:model-value="loadRequests"
+        />
+      </div>
+      <div class="col-12 col-md-3">
+        <q-select
+          v-model="filters.branch"
+          :options="branchOptions"
+          label="Branch"
+          emit-value
+          map-options
+          clearable
+          @update:model-value="loadRequests"
+        />
+      </div>
+      <div class="col-12 col-md-3">
+        <q-input
+          v-model="filters.search"
+          label="Search"
+          clearable
+          @update:model-value="loadRequests"
+        >
+          <template v-slot:append>
+            <q-icon name="search" />
+          </template>
+        </q-input>
+      </div>
+    </div>
+
+    <!-- Stock Requests Table -->
+    <q-table
+      :rows="requests"
+      :columns="columns"
+      :loading="loading"
+      v-model:pagination="pagination"
+      row-key="id"
+      @request="onRequest"
+    >
+      <!-- Status Column -->
+      <template v-slot:body-cell-status="props">
+        <q-td :props="props">
+          <q-chip
+            :color="getStatusColor(props.row.status)"
+            text-color="white"
+            dense
+          >
+            {{ props.row.status }}
+          </q-chip>
+        </q-td>
+      </template>
+
+      <!-- Actions Column -->
+      <template v-slot:body-cell-actions="props">
+        <q-td :props="props" class="q-gutter-sm">
+          <q-btn
+            flat
+            round
+            color="primary"
+            icon="visibility"
+            @click="viewRequest(props.row)"
+          >
+            <q-tooltip>View Details</q-tooltip>
+          </q-btn>
+          <q-btn
+            v-if="props.row.status === 'pending'"
+            flat
+            round
+            color="positive"
+            icon="check"
+            @click="approveRequest(props.row)"
+          >
+            <q-tooltip>Approve</q-tooltip>
+          </q-btn>
+          <q-btn
+            v-if="props.row.status === 'pending'"
+            flat
+            round
+            color="negative"
+            icon="close"
+            @click="rejectRequest(props.row)"
+          >
+            <q-tooltip>Reject</q-tooltip>
+          </q-btn>
+        </q-td>
+      </template>
+    </q-table>
+
+    <!-- Request Details Dialog -->
+    <q-dialog v-model="detailsDialog" persistent>
+      <q-card style="min-width: 700px">
+        <q-card-section class="row items-center">
+          <div class="text-h6">Request Details</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-6">
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption>Request ID</q-item-label>
+                  <q-item-label>{{ selectedRequest.id }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </div>
+            <div class="col-12 col-md-6">
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption>Status</q-item-label>
+                  <q-item-label>
+                    <q-chip
+                      :color="getStatusColor(selectedRequest.status)"
+                      text-color="white"
+                      dense
+                    >
+                      {{ selectedRequest.status }}
+                    </q-chip>
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </div>
+            <div class="col-12 col-md-6">
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption>Branch</q-item-label>
+                  <q-item-label>{{ selectedRequest.branch?.name }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </div>
+            <div class="col-12 col-md-6">
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption>Requested By</q-item-label>
+                  <q-item-label>{{ selectedRequest.requested_by?.name }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </div>
+          </div>
+
+          <q-table
+            :rows="selectedRequest.items || []"
+            :columns="itemColumns"
+            row-key="id"
+            dense
+            class="q-mt-md"
+          >
+            <template v-slot:body-cell-quantity="props">
+              <q-td :props="props">
+                <q-chip
+                  :color="props.row.quantity > props.row.available_quantity ? 'negative' : 'positive'"
+                  text-color="white"
+                  dense
+                >
+                  {{ props.row.quantity }}
+                </q-chip>
+              </q-td>
+            </template>
+          </q-table>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn
+            v-if="selectedRequest.status === 'pending'"
+            color="positive"
+            label="Approve"
+            @click="approveRequest(selectedRequest)"
+          />
+          <q-btn
+            v-if="selectedRequest.status === 'pending'"
+            color="negative"
+            label="Reject"
+            @click="rejectRequest(selectedRequest)"
+          />
+          <q-btn flat label="Close" color="primary" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Reject Dialog -->
+    <q-dialog v-model="rejectDialog" persistent>
+      <q-card style="min-width: 400px">
+        <q-card-section>
+          <div class="text-h6">Reject Request</div>
+        </q-card-section>
+
+        <q-card-section>
+          <q-input
+            v-model="rejectReason"
+            label="Reason for rejection"
+            type="textarea"
+            :rules="[val => !!val || 'Reason is required']"
+          />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="primary" v-close-popup />
+          <q-btn
+            color="negative"
+            label="Reject"
+            @click="confirmReject"
+            :disable="!rejectReason"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </q-page>
+</template>
+
+<script>
+import { defineComponent, ref, onMounted } from 'vue'
+import { useQuasar } from 'quasar'
+import { api } from 'src/boot/axios'
+import { useRoute } from 'vue-router'
+
+export default defineComponent({
+  name: 'AdminStockRequests',
+
+  setup () {
+    const $q = useQuasar()
+    const route = useRoute()
+    const loading = ref(false)
+    const requests = ref([])
+    const branches = ref([])
+    const selectedRequest = ref({})
+    const detailsDialog = ref(false)
+    const rejectDialog = ref(false)
+    const rejectReason = ref('')
+    const requestToReject = ref(null)
+
+    // Ensure route parameters are properly typed
+    const businessId = parseInt(route.params.businessId)
+    const branchId = parseInt(route.params.branchId)
+    const warehouseId = parseInt(route.params.warehouseId)
+
+    const filters = ref({
+      status: null,
+      branch: null,
+      search: ''
+    })
+
+    const statusOptions = [
+      { label: 'Pending', value: 'pending' },
+      { label: 'Approved', value: 'approved' },
+      { label: 'Rejected', value: 'rejected' },
+      { label: 'Completed', value: 'completed' }
+    ]
+
+    const columns = [
+      { name: 'id', label: 'Request ID', field: 'id', align: 'left' },
+      { name: 'branch', label: 'Branch', field: row => row.branch?.name, align: 'left' },
+      { name: 'requested_by', label: 'Requested By', field: row => row.requested_by?.name, align: 'left' },
+      { name: 'status', label: 'Status', field: 'status', align: 'left' },
+      { name: 'created_at', label: 'Requested Date', field: 'created_at', align: 'left' },
+      { name: 'actions', label: 'Actions', field: 'actions', align: 'center' }
+    ]
+
+    const itemColumns = [
+      { name: 'name', label: 'Item', field: 'name', align: 'left' },
+      { name: 'quantity_requested', label: 'Requested Quantity', field: 'quantity_requested', align: 'center' },
+      { name: 'available_quantity', label: 'Available Quantity', field: 'available_quantity', align: 'center' },
+      { name: 'unit', label: 'Unit', field: 'unit', align: 'center' },
+      { name: 'notes', label: 'Notes', field: 'notes', align: 'left' }
+    ]
+
+    const pagination = ref({
+      sortBy: 'created_at',
+      descending: true,
+      page: 1,
+      rowsPerPage: 10,
+      rowsNumber: 0
+    })
+
+    const loadRequests = async () => {
+      loading.value = true
+      try {
+        const params = {
+          page: pagination.value.page,
+          per_page: pagination.value.rowsPerPage,
+          sort_by: pagination.value.sortBy,
+          descending: pagination.value.descending,
+          ...filters.value
+        }
+
+        const response = await api.get(`/admin/stock-requests`, { params })
+        requests.value = response.data
+        pagination.value.rowsNumber = response.data.total
+      } catch (error) {
+        console.error('Error loading requests:', error)
+        $q.notify({
+          color: 'negative',
+          message: 'Failed to load stock requests'
+        })
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const loadBranches = async () => {
+      try {
+        const response = await api.get(`/business/${businessId}/branches`)
+        branches.value = response.data.map(branch => ({
+          label: branch.name,
+          value: branch.id
+        }))
+      } catch (error) {
+        console.error('Error loading branches:', error)
+      }
+    }
+
+    const viewRequest = (request) => {
+      selectedRequest.value = request
+      detailsDialog.value = true
+    }
+
+    const approveRequest = async (request) => {
+      try {
+        await api.post(`/admin/stock-requests/${request.id}/approve`)
+        $q.notify({
+          color: 'positive',
+          message: 'Request approved successfully'
+        })
+        loadRequests()
+        detailsDialog.value = false
+      } catch (error) {
+        console.error('Error approving request:', error)
+        $q.notify({
+          color: 'negative',
+          message: 'Failed to approve request'
+        })
+      }
+    }
+
+    const rejectRequest = (request) => {
+      requestToReject.value = request
+      rejectDialog.value = true
+    }
+
+    const confirmReject = async () => {
+      try {
+        await api.post(`/admin/stock-requests/${requestToReject.value.id}/reject`, {
+          reason: rejectReason.value
+        })
+        $q.notify({
+          color: 'positive',
+          message: 'Request rejected successfully'
+        })
+        loadRequests()
+        rejectDialog.value = false
+        detailsDialog.value = false
+        rejectReason.value = ''
+      } catch (error) {
+        console.error('Error rejecting request:', error)
+        $q.notify({
+          color: 'negative',
+          message: 'Failed to reject request'
+        })
+      }
+    }
+
+    const getStatusColor = (status) => {
+      const colors = {
+        pending: 'warning',
+        approved: 'positive',
+        rejected: 'negative',
+        completed: 'info'
+      }
+      return colors[status] || 'grey'
+    }
+
+    const onRequest = (props) => {
+      const { page, rowsPerPage, sortBy, descending } = props.pagination
+      pagination.value = { page, rowsPerPage, sortBy, descending }
+      loadRequests()
+    }
+
+    onMounted(() => {
+      loadRequests()
+      loadBranches()
+    })
+
+    return {
+      loading,
+      requests,
+      columns,
+      itemColumns,
+      pagination,
+      filters,
+      statusOptions,
+      branchOptions: branches,
+      selectedRequest,
+      detailsDialog,
+      rejectDialog,
+      rejectReason,
+      viewRequest,
+      approveRequest,
+      rejectRequest,
+      confirmReject,
+      getStatusColor,
+      onRequest,
+      loadRequests
+    }
+  }
+})
+</script>
+
+<style scoped>
+.q-table__card {
+  box-shadow: none;
+  border: 1px solid #ddd;
+}
+</style>

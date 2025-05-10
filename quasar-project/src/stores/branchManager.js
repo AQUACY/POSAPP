@@ -30,6 +30,18 @@ export const useBranchManagerStore = defineStore('branchManager', {
       }
     },
 
+    async fetchBranchDetailsforInventory(businessId, branchId) {
+      this.loading = true
+      try {
+        const response = await branchManagerService.getBranchDetailsforInventory(businessId, branchId)
+        this.branchDetails = response.data
+      } catch (error) {
+        this.error = error.message
+      } finally {
+        this.loading = false
+      }
+    },
+
     async updateBranchDetails(data) {
       this.loading = true
       try {

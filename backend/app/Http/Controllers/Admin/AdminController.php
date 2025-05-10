@@ -11,6 +11,7 @@ use App\Models\Category;
 use App\Models\Sale;
 use App\Models\User;
 use App\Models\StockChange;
+use App\Models\InventoryActivity;
 use App\Http\Resources\Admin\BusinessResource;
 use App\Http\Resources\Admin\BranchResource;
 use App\Http\Resources\Admin\InventoryResource;
@@ -22,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use App\Models\StockRequest;
 
 class AdminController extends Controller
 {
@@ -142,20 +144,58 @@ class AdminController extends Controller
             'sku' => 'required|string|unique:inventories,sku',
             'barcode' => 'nullable|string|unique:inventories,barcode',
             'quantity' => 'required|integer|min:0',
+            'expiry_date' => 'nullable|date',
             'unit_price' => 'required|numeric|min:0',
             'cost_price' => 'required|numeric|min:0',
             'reorder_level' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'business_id' => 'required|exists:businesses,id',
-            'branch_id' => 'required|exists:branches,id',
+            'branch_id' => 'nullable|exists:branches,id',
+            'warehouse_id' => 'nullable|exists:warehouses,id',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()], 422);
         }
 
-        $inventory = Inventory::create($request->all());
-        return response()->json(new InventoryResource($inventory), 201);
+        try {
+            // Create inventory with default values for nullable fields
+            $inventoryData = array_merge($request->all(), [
+                'branch_id' => $request->branch_id ?? null,
+                'sync_status' => 'pending'
+            ]);
+
+            $inventory = Inventory::create($inventoryData);
+
+            // If branch_id is provided, create initial stock activity
+            if ($request->branch_id) {
+                InventoryActivity::create([
+                    'inventory_id' => $inventory->id,
+                    'user_id' => auth()->id(),
+                    'branch_id' => $request->branch_id,
+                    'action_type' => 'in',
+                    'quantity' => $request->quantity,
+                    'old_quantity' => 0,
+                    'new_quantity' => $request->quantity,
+                    'unit_price' => $request->unit_price,
+                    'notes' => 'Initial stock'
+                ]);
+            }
+
+            return response()->json(new InventoryResource($inventory), 201);
+        } catch (\Exception $e) {
+            \Log::error('Inventory Creation Error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to create inventory item',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function updateInventory(Request $request, $id)
@@ -174,6 +214,7 @@ class AdminController extends Controller
             'category_id' => 'sometimes|required|exists:categories,id',
             'business_id' => 'sometimes|required|exists:businesses,id',
             'branch_id' => 'sometimes|required|exists:branches,id',
+            'warehouse_id' => 'sometimes|required|exists:warehouses,id',
         ]);
 
         if ($validator->fails()) {
@@ -565,36 +606,67 @@ class AdminController extends Controller
         ]);
 
         $inventory = Inventory::findOrFail($id);
+        $oldQuantity = $inventory->quantity;
         
-        // Create stock change record
-        $stockChange = StockChange::create([
-            'inventory_id' => $id,
-            'user_id' => auth()->id(),
-            'quantity' => $request->quantity,
-            'change_type' => $request->change_type,
-            'reason' => $request->reason
-        ]);
+        try {
+            DB::beginTransaction();
 
-        // Update inventory quantity based on change type
-        switch ($request->change_type) {
-            case 'addition':
-                $inventory->quantity += $request->quantity;
-                break;
-            case 'reduction':
-                $inventory->quantity = max(0, $inventory->quantity - $request->quantity);
-                break;
-            case 'adjustment':
-                $inventory->quantity = $request->quantity;
-                break;
+            // Create stock change record
+            $stockChange = StockChange::create([
+                'inventory_id' => $id,
+                'user_id' => auth()->id(),
+                'quantity' => $request->quantity,
+                'change_type' => $request->change_type,
+                'reason' => $request->reason
+            ]);
+
+            // Update inventory quantity based on change type
+            switch ($request->change_type) {
+                case 'addition':
+                    $inventory->quantity += $request->quantity;
+                    break;
+                case 'reduction':
+                    $inventory->quantity = max(0, $inventory->quantity - $request->quantity);
+                    break;
+                case 'adjustment':
+                    $inventory->quantity = $request->quantity;
+                    break;
+            }
+
+            $inventory->save();
+
+            // Record in inventory activity
+            InventoryActivity::create([
+                'inventory_id' => $inventory->id,
+                'user_id' => auth()->id(),
+                'branch_id' => $inventory->branch_id,
+                'action_type' => $request->change_type === 'addition' ? 'in' : ($request->change_type === 'reduction' ? 'out' : 'adjustment'),
+                'quantity' => $request->quantity,
+                'old_quantity' => $oldQuantity,
+                'new_quantity' => $inventory->quantity,
+                'unit_price' => $inventory->unit_price,
+                'notes' => $request->reason
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Stock updated successfully',
+                'data' => [
+                    'inventory' => $inventory,
+                    'stock_change' => $stockChange
+                ]
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to update stock',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $inventory->save();
-
-        return response()->json([
-            'message' => 'Stock updated successfully',
-            'inventory' => $inventory,
-            'stock_change' => $stockChange
-        ]);
     }
 
     /**
@@ -608,5 +680,39 @@ class AdminController extends Controller
             ->get();
 
         return response()->json($stockChanges);
+    }
+
+    // Stock Request Management
+    public function getStockRequests()
+    {
+        $stockRequests = StockRequest::with(['branch', 'warehouse', 'items', 'requestedBy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($stockRequests);
+    }
+
+    public function getStockRequestDetails($id)
+    {
+        $stockRequest = StockRequest::with(['branch', 'warehouse', 'items', 'requestedBy'])->findOrFail($id);   
+        return response()->json($stockRequest);
+    }
+
+    public function approveStockRequest($id)
+    {
+        $stockRequest = StockRequest::findOrFail($id);
+        $stockRequest->status = 'approved';
+        $stockRequest->save();
+
+        return response()->json($stockRequest);
+    }
+
+    public function rejectStockRequest($id)
+    {
+        $stockRequest = StockRequest::findOrFail($id);
+        $stockRequest->status = 'rejected';
+        $stockRequest->save();
+
+        return response()->json($stockRequest);
     }
 } 

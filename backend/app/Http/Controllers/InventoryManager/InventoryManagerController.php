@@ -10,6 +10,7 @@ use App\Models\InventoryActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use App\Http\Middleware\RoleMiddleware;
 
@@ -286,6 +287,7 @@ class InventoryManagerController extends Controller
         
         // Get categories for the current business
         $categories = Category::where('business_id', $user->business_id)
+
             ->orderBy('name')
             ->get();
 
@@ -294,6 +296,26 @@ class InventoryManagerController extends Controller
             'data' => $categories
         ]);
     }
+
+      /**
+     * Get categories
+     */
+    public function getCategoriesforBranch()
+    {
+        $user = Auth::user();
+        
+        // Get categories for the current business
+        $categories = Category::where('branch_id', $user->branch_id)
+
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $categories
+        ]);
+    }
+
 
     /**
      * Get dashboard summary including all metrics
@@ -430,5 +452,184 @@ class InventoryManagerController extends Controller
             'status' => 'success',
             'data' => $expiredItems
         ]);
+    }
+
+        /**
+     * Get branch details
+     *
+     * @param int $businessId
+     * @param int $branchId
+     * @return JsonResponse 
+     */
+    public function getBranchDetails(int $businessId, int $branchId): JsonResponse
+    {
+        $branch = Branch::where('id', $branchId)
+            ->where('business_id', $businessId)
+            ->firstOrFail();
+        
+        return response()->json([
+            'status' => 'success',
+            'data' => $branch
+        ]);
+    }
+
+    /**
+     * Get inventory report with detailed analytics
+     */
+    public function getInventoryReport(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            \Log::info('Inventory Report Request', [
+                'user_id' => $user->id,
+                'branch_id' => $user->branch_id,
+                'date_from' => $request->from,
+                'date_to' => $request->to
+            ]);
+
+            // Validate date range
+            $validator = Validator::make($request->all(), [
+                'from' => 'required|date|before_or_equal:today',
+                'to' => 'required|date|after_or_equal:from|before_or_equal:today'
+            ]);
+
+            if ($validator->fails()) {
+                \Log::warning('Inventory Report Validation Failed', [
+                    'errors' => $validator->errors()->toArray()
+                ]);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Check if branch exists
+            $branch = Branch::where('id', $user->branch_id)->first();
+            if (!$branch) {
+                \Log::error('Branch not found', ['branch_id' => $user->branch_id]);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Branch not found'
+                ], 404);
+            }
+
+            // Get stock movements with inventory relationship
+            $movements = InventoryActivity::where('branch_id', $user->branch_id)
+                ->whereBetween('created_at', [$request->from, $request->to])
+                ->with(['inventory' => function($query) {
+                    $query->select('id', 'name');
+                }])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            \Log::info('Inventory Movements Found', [
+                'count' => $movements->count()
+            ]);
+
+            $movements = $movements->map(function ($activity) {
+                return [
+                    'id' => $activity->id,
+                    'created_at' => $activity->created_at,
+                    'inventory_name' => $activity->inventory ? $activity->inventory->name : 'Unknown Item',
+                    'action_type' => $activity->action_type,
+                    'quantity' => $activity->quantity,
+                    'notes' => $activity->notes
+                ];
+            });
+
+            // Calculate summary
+            $summary = InventoryActivity::where('branch_id', $user->branch_id)
+                ->whereBetween('created_at', [$request->from, $request->to])
+                ->selectRaw('
+                    COUNT(*) as totalChanges,
+                    SUM(CASE WHEN action_type = "in" THEN quantity ELSE 0 END) as totalAdded,
+                    SUM(CASE WHEN action_type = "out" THEN quantity ELSE 0 END) as totalRemoved,
+                    SUM(CASE WHEN action_type = "in" THEN quantity ELSE -quantity END) as netChange
+                ')
+                ->first();
+
+            \Log::info('Inventory Summary Calculated', [
+                'summary' => $summary
+            ]);
+
+            // Get most active items with proper inventory relationship
+            $mostActiveItems = DB::table('inventory_activities')
+                ->join('inventories', 'inventory_activities.inventory_id', '=', 'inventories.id')
+                ->where('inventory_activities.branch_id', $user->branch_id)
+                ->whereBetween('inventory_activities.created_at', [$request->from, $request->to])
+                ->select(
+                    'inventories.id',
+                    'inventories.name',
+                    DB::raw('COUNT(*) as total_changes'),
+                    DB::raw('SUM(CASE WHEN action_type = "in" THEN quantity ELSE -quantity END) as net_change')
+                )
+                ->groupBy('inventories.id', 'inventories.name')
+                ->orderBy('total_changes', 'desc')
+                ->limit(5)
+                ->get();
+
+            \Log::info('Most Active Items Found', [
+                'count' => $mostActiveItems->count()
+            ]);
+
+            // Get low stock items
+            $lowStockItems = Inventory::where('branch_id', $user->branch_id)
+                ->whereRaw('quantity <= reorder_level')
+                ->select('id', 'name', 'quantity', 'reorder_level')
+                ->get();
+
+            \Log::info('Low Stock Items Found', [
+                'count' => $lowStockItems->count()
+            ]);
+
+            // Return empty data structure if no activities found
+            if ($movements->isEmpty() && $mostActiveItems->isEmpty()) {
+                \Log::info('No Inventory Activities Found for Date Range');
+                return response()->json([
+                    'status' => 'success',
+                    'data' => [
+                        'summary' => [
+                            'totalChanges' => 0,
+                            'totalAdded' => 0,
+                            'totalRemoved' => 0,
+                            'netChange' => 0
+                        ],
+                        'movements' => [],
+                        'most_active_items' => [],
+                        'low_stock_items' => $lowStockItems
+                    ],
+                    'message' => 'No inventory activities found for the selected date range'
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'summary' => [
+                        'totalChanges' => $summary->totalChanges ?? 0,
+                        'totalAdded' => $summary->totalAdded ?? 0,
+                        'totalRemoved' => $summary->totalRemoved ?? 0,
+                        'netChange' => $summary->netChange ?? 0
+                    ],
+                    'movements' => $movements,
+                    'most_active_items' => $mostActiveItems,
+                    'low_stock_items' => $lowStockItems
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Inventory Report Error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to generate inventory report',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 } 

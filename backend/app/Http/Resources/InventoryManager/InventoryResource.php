@@ -26,6 +26,10 @@ class InventoryResource extends JsonResource
                 'id' => $this->branch->id,
                 'name' => $this->branch->name,
             ],
+            'warehouse' => [
+                'id' => $this->warehouse->id,
+                'name' => $this->warehouse->name,
+            ],
             'is_low_stock' => $this->quantity <= $this->reorder_level,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

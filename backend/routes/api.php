@@ -112,19 +112,20 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/business/{businessId}/branches', [AdminController::class, 'listBranches']);
 
         // Inventory Management
-        Route::post('/inventory', [AdminController::class, 'createInventory']);
+        Route::post('/admin/inventory', [AdminController::class, 'createInventory']);
         Route::put('/admin/inventory/{id}', [AdminController::class, 'updateInventory']);
-        Route::get('/inventory/{id}', [AdminController::class, 'getInventory']);
+        Route::get('/admin/inventory/{id}', [AdminController::class, 'getInventory']);
         Route::get('/business/{businessId}/branch/{branchId}/inventory', [AdminController::class, 'listInventoryofBranch']);
         Route::get('/business/{businessId}/inventory', [AdminController::class, 'listInventoryofBusiness']);
-        Route::delete('/inventory/{id}', [AdminController::class, 'deleteInventory']);
-        Route::put('/inventory/stock/{id}', [AdminController::class, 'updateStock']);
+        Route::delete('/admin/inventory/{id}', [AdminController::class, 'deleteInventory']);
+        Route::put('/admin/inventory/stock/{id}', [AdminController::class, 'updateStock']);
 
         // Warehouse Management
         Route::post('/warehouses', [AdminController::class, 'createWarehouse']);
         Route::put('/warehouses/{id}', [AdminController::class, 'updateWarehouse']);
         Route::get('/warehouses/{id}', [AdminController::class, 'getWarehouse']);
         Route::get('/warehouses', [AdminController::class, 'listWarehouses']);
+        Route::get('/business/{businessId}/warehouses', [AdminController::class, 'listWarehousesofBusiness']);
         Route::delete('/warehouses/{id}', [AdminController::class, 'deleteWarehouse']);
         // Category Management
         Route::post('/categories', [AdminController::class, 'createCategory']);
@@ -162,8 +163,14 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/branches/{id}/performance', [AdminController::class, 'getBranchPerformance']);
 
         // Stock management routes
-        Route::post('/inventory/{id}/add-stock', [AdminController::class, 'addStock']);
-        Route::get('/inventory/{id}/stock-history', [AdminController::class, 'getStockHistory']);
+        // Route::post('/inventory/{id}/add-stock', [AdminController::class, 'addStock']);
+        // Route::get('/inventory/{id}/stock-history', [AdminController::class, 'getStockHistory']);
+
+        // Stock Request Management
+        Route::get('/admin/stock-requests', [AdminController::class, 'getStockRequests']);
+        Route::get('/admin/stock-requests/{id}', [AdminController::class, 'getStockRequestDetails']);
+        Route::post('/admin/stock-requests/{id}/approve', [AdminController::class, 'approveStockRequest']);
+        Route::post('/admin/stock-requests/{id}/reject', [AdminController::class, 'rejectStockRequest']);
     });
 
     // Branch Manager routes
@@ -187,10 +194,10 @@ Route::middleware(['auth:api'])->group(function () {
             Route::delete('/inventory/{id}', [BranchManagerController::class, 'deleteInventoryItem']);
 
             // Stock Request Management
-            Route::get('/stock-requests', [BranchManagerController::class, 'getStockRequests']);
-            Route::post('/stock-requests', [BranchManagerController::class, 'createStockRequest']);
-            Route::get('/stock-requests/{id}', [BranchManagerController::class, 'getStockRequestDetails']);
-            Route::post('/stock-requests/{id}/cancel', [BranchManagerController::class, 'cancelStockRequest']);
+            Route::get('/warehouse/{warehouseId}/stock-requests', [BranchManagerController::class, 'getStockRequests']);
+            Route::post('/warehouse/{warehouseId}/stock-requests', [BranchManagerController::class, 'createStockRequest']);
+            Route::get('/warehouse/{warehouseId}/stock-requests/{id}', [BranchManagerController::class, 'getStockRequestDetails']);
+            Route::post('/warehouse/{warehouseId}/stock-requests/{id}/cancel', [BranchManagerController::class, 'cancelStockRequest']);
     
             // Sales Management
             Route::get('/sales', [BranchManagerController::class, 'getSales']);
@@ -208,7 +215,7 @@ Route::middleware(['auth:api'])->group(function () {
     });
 
      // Inventory Clerk routes
-     Route::middleware([RoleMiddleware::class . ':inventory_clerk,branch_manager'])->group(function () {
+     Route::middleware([RoleMiddleware::class . ':inventory_clerk,branch_manager,admin'])->group(function () {
         // Dashboard
         Route::get('/dashboard/summary', [InventoryManagerController::class, 'getDashboardSummary']);
         Route::get('/dashboard/activities', [InventoryManagerController::class, 'getRecentActivities']);
@@ -216,19 +223,24 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/dashboard/expiring', [InventoryManagerController::class, 'getExpiringItems']);
 
         // Categories
-        Route::get('/categories', [InventoryManagerController::class, 'getCategories']);
+        Route::get('/categoriesforbusiness', [InventoryManagerController::class, 'getCategories']);
+        Route::get('/categoriesforbranch', [InventoryManagerController::class, 'getCategoriesforBranch']);
 
         // Inventory Management
         Route::get('/inventory', [InventoryManagerController::class, 'getInventory']);
         Route::get('/inventory/{id}', [InventoryManagerController::class, 'getInventoryItem']);
         Route::post('/inventory', [InventoryManagerController::class, 'createInventory']);
         Route::put('/inventory/{id}', [InventoryManagerController::class, 'updateInventory']);
-        Route::put('/inventory/{id}/quantity', [InventoryManagerController::class, 'updateQuantity']);
+        // Route::put('/inventory/{id}/quantity', [InventoryManagerController::class, 'updateQuantity']);
+        Route::post('/inventory/{id}/add-stock', [AdminController::class, 'addStock']);
+        Route::get('/inventory/{id}/stock-history', [AdminController::class, 'getStockHistory']);
 
         // Inventory Reports
         Route::get('/inventory/low-stock', [InventoryManagerController::class, 'getLowStockItems']);
         Route::get('/inventory/expired', [InventoryManagerController::class, 'getExpiredItems']);
         Route::get('/inventory/summary', [InventoryManagerController::class, 'getInventorySummary']);
+        Route::get('/getbranch/{businessId}/{branchId}', [InventoryManagerController::class, 'getBranchDetails']);
+        Route::get('/inventory/report', [InventoryManagerController::class, 'getInventoryReport']);
     });
     
     // Cashier routes

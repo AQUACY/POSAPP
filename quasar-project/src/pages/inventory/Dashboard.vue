@@ -89,7 +89,7 @@
                 <q-card flat bordered class="bg-info text-white">
                   <q-card-section>
                     <div class="text-subtitle2">Stock Value</div>
-                    <div class="text-h4">₱{{ stockValue }}</div>
+                    <div class="text-h4">GhC {{ stockValue }}</div>
                     <div class="text-caption">Total inventory value</div>
                   </q-card-section>
                 </q-card>
@@ -113,14 +113,29 @@
             <q-list separator>
               <q-item v-for="activity in recentActivities" :key="activity.id">
                 <q-item-section avatar>
-                  <q-icon :name="activity.icon" :color="activity.color" />
+                  <q-icon 
+                    :name="activity.action_type === 'in' ? 'add_circle' : (activity.action_type === 'out' ? 'remove_circle' : 'edit')" 
+                    :color="activity.action_type === 'in' ? 'positive' : (activity.action_type === 'out' ? 'negative' : 'warning')" 
+                  />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>{{ activity.description }}</q-item-label>
-                  <q-item-label caption>{{ activity.timestamp }}</q-item-label>
+                  <q-item-label>
+                    {{ activity.action_type === 'in' ? 'Added' : (activity.action_type === 'out' ? 'Removed' : 'Adjusted') }} 
+                    {{ activity.quantity }} units 
+                    ({{ activity.old_quantity }} → {{ activity.new_quantity }})
+                  </q-item-label>
+                  <q-item-label caption>
+                    {{ activity.notes }} • {{ new Date(activity.created_at).toLocaleString() }}
+                  </q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn flat round color="grey" icon="chevron_right" />
+                  <q-chip
+                    :color="activity.action_type === 'in' ? 'positive' : (activity.action_type === 'out' ? 'negative' : 'warning')"
+                    text-color="white"
+                    size="sm"
+                  >
+                    GhC {{ activity.unit_price }}
+                  </q-chip>
                 </q-item-section>
               </q-item>
             </q-list>
@@ -212,17 +227,9 @@
             />
 
             <q-input
-              v-model.number="stockForm.unit_price"
-              type="number"
-              label="Unit Price"
-              prefix="₱"
-              :rules="[val => !val || val >= 0 || 'Price cannot be negative']"
-            />
-
-            <q-input
-              v-model="stockForm.notes"
+              v-model="stockForm.reason"
               type="textarea"
-              label="Notes"
+              label="Reason"
               hint="Add any additional information"
             />
 
@@ -275,8 +282,7 @@ const upcomingExpiry = ref([])
 const stockForm = ref({
   inventory_id: null,
   quantity: null,
-  unit_price: null,
-  notes: ''
+  reason: ''
 })
 const inventoryItems = ref([])
 
@@ -299,7 +305,9 @@ const fetchDashboardData = async () => {
     stockValue.value = inventoryStore.dashboardSummary.stock_value
 
     // Update lists from store state
+    console.log('Store recent activities:', inventoryStore.recentActivities)
     recentActivities.value = inventoryStore.recentActivities
+    console.log('Local recent activities:', recentActivities.value)
     stockAlerts.value = inventoryStore.stockAlerts
     upcomingExpiry.value = inventoryStore.expiringItems
   } catch (err) {
@@ -315,7 +323,9 @@ const fetchDashboardData = async () => {
 const fetchInventoryItems = async () => {
   try {
     await inventoryStore.fetchInventoryItems()
+    console.log('Store inventory items:', inventoryStore.inventoryItems)
     inventoryItems.value = inventoryStore.inventoryItems
+    console.log('Local inventory items:', inventoryItems.value)
   } catch (err) {
     console.error('Failed to fetch inventory items:', err)
     $q.notify({
@@ -352,10 +362,9 @@ const onSubmitStock = async () => {
   try {
     await inventoryStore.updateInventoryQuantity({
       id: stockForm.value.inventory_id,
-      type: 'in',
+      change_type: 'addition',
       quantity: stockForm.value.quantity,
-      unit_price: stockForm.value.unit_price,
-      notes: stockForm.value.notes
+      reason: stockForm.value.reason
     })
 
     // Show success message
@@ -369,8 +378,7 @@ const onSubmitStock = async () => {
     stockForm.value = {
       inventory_id: null,
       quantity: null,
-      unit_price: null,
-      notes: ''
+      reason: ''
     }
     addStockDialog.value = false
 
