@@ -242,9 +242,9 @@ function toggleLeftDrawer() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(24, 26, 32, 0.95);
+  background: rgba(83, 115, 209, 0.95);
   border-radius: 40px;
-  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.25);
+  box-shadow: 0 8px 32px 0 rgba(39, 72, 110, 0.25);
   padding: 0 18px;
   height: 64px;
   min-width: 320px;

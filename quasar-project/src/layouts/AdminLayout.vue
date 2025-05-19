@@ -77,7 +77,11 @@ export default {
         icon: 'dashboard',
         link: '/dashboard'
       },
-      
+      {
+        title: 'Shift Management',
+        icon: 'schedule',
+        link: '/shifts'
+      },
       {
         title: 'Branches',
         icon: 'store',
@@ -87,6 +91,11 @@ export default {
         title: 'Warehouses',
         icon: 'warehouse',
         link: '/warehouses'
+      },
+      {
+        title: 'Taxes',
+        icon: 'mdi-receipt',
+        link: '/taxes'
       },
       {
         title: 'Inventory',

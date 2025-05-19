@@ -1,382 +1,396 @@
 <template>
   <q-page class="pos-page">
-    <div class="row full-height">
-      <!-- Left Side - Products Grid -->
-      <div class="col-8 q-pa-md">
-        <!-- Search and Categories -->
-        <div class="row q-mb-md">
-          <div class="col-8">
-            <q-input
-              v-model="search"
-              dense
-              outlined
-              placeholder="Search products..."
-              class="q-mr-sm"
-            >
-              <template v-slot:append>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-          </div>
-          <div class="col-4">
-            <q-select
-              v-model="selectedCategory"
-              :options="categories"
-              dense
-              outlined
-              label="Category"
-              emit-value
-              map-options
-            />
-          </div>
-        </div>
-
-        <!-- Products Grid -->
-        <div class="row q-col-gutter-md">
-          <div v-for="product in filteredProducts" :key="product.id" class="col-3">
-            <q-card class="product-card cursor-pointer" @click="addToCart(product)">
-              <q-img
-                :src="product.image || 'https://via.placeholder.com/150'"
-                :ratio="1"
-                class="product-image"
-              />
-              <q-card-section>
-                <div class="text-subtitle2 text-weight-bold">{{ product.name }}</div>
-                <div class="text-caption text-grey-8">{{ product.category?.name }}</div>
-                <div class="text-h6 text-primary">${{ product.unit_price }}</div>
-              </q-card-section>
-            </q-card>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Side - Cart -->
-      <div class="col-4 bg-grey-2 q-pa-md">
-        <div class="text-h5 text-weight-bold q-mb-md">Current Order</div>
-
-        <!-- Customer Selection with New Customer Button -->
-        <div class="row q-mb-md">
-          <div class="col-12">
-            <div class="row q-col-gutter-sm">
-              <div class="col">
-                <q-select
-                  v-model="customerId"
-                  :options="customers"
-                  label="Select Customer"
-                  outlined
-                  emit-value
-                  map-options
-                  :rules="[val => !!val || 'Customer is required']"
-                  :loading="loading"
-                  use-input
-                  input-debounce="0"
-                  @filter="filterCustomers"
-                >
-                  <template v-slot:option="scope">
-                    <q-item v-bind="scope.itemProps">
-                      <q-item-section>
-                        <q-item-label>{{ scope.opt.name }}</q-item-label>
-                        <q-item-label caption>
-                          {{ scope.opt.email }} | {{ scope.opt.phone }}
-                        </q-item-label>
-                        <q-item-label caption class="text-grey-8">
-                          {{ scope.opt.address }}
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </template>
-                  <template v-slot:no-option>
-                    <q-item>
-                      <q-item-section class="text-grey">
-                        No customers found
-                      </q-item-section>
-                    </q-item>
-                  </template>
-                </q-select>
-              </div>
-              <div class="col-auto">
-                <q-btn
-                  color="primary"
-                  icon="person_add"
-                  label="New Customer"
-                  @click="showNewCustomerDialog = true"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Notes Section -->
-        <div class="row q-mb-md">
-          <div class="col-12">
-            <q-input
-              v-model="notes"
-              label="Notes"
-              type="textarea"
-              outlined
-              rows="2"
-            />
-          </div>
-        </div>
-
-        <!-- Cart Items -->
-        <q-scroll-area style="height: calc(100vh - 300px)">
-          <q-list>
-            <q-item v-for="item in cart" :key="item.id" class="q-mb-sm">
-              <q-item-section>
-                <q-item-label>{{ item.name }}</q-item-label>
-                <q-item-label caption>${{ item.price }} x {{ item.quantity }}</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <div class="row items-center">
-                  <q-btn flat dense icon="remove" @click="decreaseQuantity(item)" />
-                  <span class="q-mx-sm">{{ item.quantity }}</span>
-                  <q-btn flat dense icon="add" @click="increaseQuantity(item)" />
-                  <q-btn flat dense icon="delete" color="negative" @click="removeFromCart(item)" />
-                </div>
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-scroll-area>
-
-        <!-- Order Summary -->
-        <div class="order-summary q-mt-md">
-          <div class="row justify-between q-mb-sm">
-            <div>Subtotal:</div>
-            <div>${{ subtotal.toFixed(2) }}</div>
-          </div>
-          <div class="row justify-between q-mb-sm">
-            <div>Tax (10%):</div>
-            <div>${{ tax.toFixed(2) }}</div>
-          </div>
-          <q-separator class="q-my-md" />
-          <div class="row justify-between text-h6">
-            <div>Total:</div>
-            <div>${{ total.toFixed(2) }}</div>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="row q-col-gutter-md q-mt-md">
-          <div class="col-6">
-            <q-btn
-              label="Clear"
-              color="negative"
-              class="full-width"
-              @click="clearCart"
-            />
-          </div>
-          <div class="col-6">
-            <q-btn
-              label="Checkout"
-              color="primary"
-              class="full-width"
-              :disable="cart.length === 0"
-              :loading="loading"
-              @click="checkout"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Payment Method Dialog -->
-    <q-dialog v-model="showPaymentDialog" persistent>
-      <q-card style="min-width: 350px">
-        <q-card-section class="row items-center">
-          <div class="text-h6">Payment Details</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-
-        <q-card-section>
-          <div class="row q-col-gutter-md">
-            <!-- Sale Number -->
-            <div class="col-12">
+    <shift-manager @shift-status-changed="onShiftStatusChanged" />
+    
+    <div v-if="hasOpenShift">
+      <div class="row full-height">
+        <!-- Left Side - Products Grid -->
+        <div class="col-8 q-pa-md">
+          <!-- Search and Categories -->
+          <div class="row q-mb-md">
+            <div class="col-8">
               <q-input
-                v-model="saleNumber"
-                label="Sale Number"
+                v-model="search"
+                dense
                 outlined
-                readonly
-              />
+                placeholder="Search products..."
+                class="q-mr-sm"
+              >
+                <template v-slot:append>
+                  <q-icon name="search" />
+                </template>
+              </q-input>
             </div>
-
-            <!-- Payment Method Selection -->
-            <div class="col-12">
+            <div class="col-4">
               <q-select
-                v-model="selectedPaymentMethod"
-                :options="paymentOptions"
-                label="Payment Method"
+                v-model="selectedCategory"
+                :options="categories"
+                dense
                 outlined
+                label="Category"
                 emit-value
                 map-options
-              >
-                <template v-slot:option="scope">
-                  <q-item v-bind="scope.itemProps">
-                    <q-item-section avatar>
-                      <q-icon :name="scope.opt.icon" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>{{ scope.opt.label }}</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </template>
-              </q-select>
+              />
             </div>
-
-            <!-- Cash Payment Section -->
-            <template v-if="selectedPaymentMethod === PAYMENT_METHODS.CASH">
-              <div class="col-12">
-                <q-input
-                  v-model.number="paymentAmount"
-                  type="number"
-                  label="Amount Received"
-                  outlined
-                  :rules="[val => val >= total || 'Amount must be greater than total']"
-                  @update:model-value="updatePaymentAmount"
-                />
-              </div>
-              <div class="col-12">
-                <q-input
-                  v-model.number="changeAmount"
-                  type="number"
-                  label="Change"
-                  outlined
-                  readonly
-                />
-              </div>
-            </template>
-
-            <!-- Credit Card Section -->
-            <template v-if="selectedPaymentMethod === PAYMENT_METHODS.CREDIT_CARD">
-              <div class="col-12">
-                <q-input
-                  v-model="cardNumber"
-                  label="Card Number"
-                  outlined
-                  mask="#### #### #### ####"
-                />
-              </div>
-              <div class="col-6">
-                <q-input
-                  v-model="expiryDate"
-                  label="Expiry Date"
-                  outlined
-                  mask="##/##"
-                />
-              </div>
-              <div class="col-6">
-                <q-input
-                  v-model="cvv"
-                  label="CVV"
-                  outlined
-                  mask="###"
-                  type="password"
-                />
-              </div>
-            </template>
-
-            <!-- Ghana Payment Section -->
-            <template v-if="selectedPaymentMethod === PAYMENT_METHODS.GHANA_PAYMENT">
-              <div class="col-12">
-                <q-select
-                  v-model="ghanaPaymentMethod"
-                  :options="ghanaPaymentOptions"
-                  label="Select Payment Method"
-                  outlined
-                />
-              </div>
-              <div class="col-12">
-                <q-input
-                  v-model="mobileNumber"
-                  label="Mobile Number"
-                  outlined
-                  mask="### ### ####"
-                />
-              </div>
-            </template>
           </div>
-        </q-card-section>
 
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" color="negative" v-close-popup />
-          <q-btn
-            flat
-            label="Process Payment"
-            color="primary"
-            :loading="loading"
-            :disable="!selectedPaymentMethod || (selectedPaymentMethod === PAYMENT_METHODS.CASH && paymentAmount < total)"
-            @click="processPayment"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <!-- New Customer Dialog -->
-    <q-dialog v-model="showNewCustomerDialog" persistent>
-      <q-card style="min-width: 350px">
-        <q-card-section class="row items-center">
-          <div class="text-h6">New Customer</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-
-        <q-card-section>
+          <!-- Products Grid -->
           <div class="row q-col-gutter-md">
-            <div class="col-12">
-              <q-input
-                v-model="newCustomer.name"
-                label="Name"
-                outlined
-                :rules="[val => !!val || 'Name is required']"
-              />
+            <div v-for="product in filteredProducts" :key="product.id" class="col-3">
+              <q-card class="product-card cursor-pointer" @click="addToCart(product)">
+                <q-img
+                  :src="product.image || 'https://via.placeholder.com/150'"
+                  :ratio="1"
+                  class="product-image"
+                />
+                <q-card-section>
+                  <div class="text-subtitle2 text-weight-bold">{{ product.name }}</div>
+                  <div class="text-caption text-grey-8">{{ product.category?.name }}</div>
+                  <div class="text-h6 text-primary">${{ product.unit_price }}</div>
+                </q-card-section>
+              </q-card>
             </div>
+          </div>
+        </div>
+
+        <!-- Right Side - Cart -->
+        <div class="col-4 bg-grey-2 q-pa-md">
+          <div class="text-h5 text-weight-bold q-mb-md">Current Order</div>
+
+          <!-- Customer Selection with New Customer Button -->
+          <div class="row q-mb-md">
             <div class="col-12">
-              <q-input
-                v-model="newCustomer.email"
-                label="Email"
-                type="email"
-                outlined
-                :rules="[
-                  val => !!val || 'Email is required',
-                  val => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) || 'Invalid email format'
-                ]"
-              />
+              <div class="row q-col-gutter-sm">
+                <div class="col">
+                  <q-select
+                    v-model="customerId"
+                    :options="customers"
+                    label="Select Customer"
+                    outlined
+                    emit-value
+                    map-options
+                    :rules="[val => !!val || 'Customer is required']"
+                    :loading="loading"
+                    use-input
+                    input-debounce="0"
+                    @filter="filterCustomers"
+                  >
+                    <template v-slot:option="scope">
+                      <q-item v-bind="scope.itemProps">
+                        <q-item-section>
+                          <q-item-label>{{ scope.opt.name }}</q-item-label>
+                          <q-item-label caption>
+                            {{ scope.opt.email }} | {{ scope.opt.phone }}
+                          </q-item-label>
+                          <q-item-label caption class="text-grey-8">
+                            {{ scope.opt.address }}
+                          </q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                    <template v-slot:no-option>
+                      <q-item>
+                        <q-item-section class="text-grey">
+                          No customers found
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                  </q-select>
+                </div>
+                <div class="col-auto">
+                  <q-btn
+                    color="primary"
+                    icon="person_add"
+                    label="New Customer"
+                    @click="showNewCustomerDialog = true"
+                  />
+                </div>
+              </div>
             </div>
+          </div>
+
+          <!-- Notes Section -->
+          <div class="row q-mb-md">
             <div class="col-12">
               <q-input
-                v-model="newCustomer.phone"
-                label="Phone"
-                outlined
-                mask="### ### ####"
-                :rules="[val => !!val || 'Phone is required']"
-              />
-            </div>
-            <div class="col-12">
-              <q-input
-                v-model="newCustomer.address"
-                label="Address"
+                v-model="notes"
+                label="Notes"
                 type="textarea"
                 outlined
                 rows="2"
               />
             </div>
           </div>
-        </q-card-section>
 
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" color="negative" v-close-popup />
-          <q-btn
-            flat
-            label="Create Customer"
-            color="primary"
-            :loading="loading"
-            :disable="!newCustomer.name || !newCustomer.email || !newCustomer.phone"
-            @click="createNewCustomer"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+          <!-- Cart Items -->
+          <q-scroll-area style="height: calc(100vh - 300px)">
+            <q-list>
+              <q-item v-for="item in cart" :key="item.id" class="q-mb-sm">
+                <q-item-section>
+                  <q-item-label>{{ item.name }}</q-item-label>
+                  <q-item-label caption>${{ item.price }} x {{ item.quantity }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <div class="row items-center">
+                    <q-btn flat dense icon="remove" @click="decreaseQuantity(item)" />
+                    <span class="q-mx-sm">{{ item.quantity }}</span>
+                    <q-btn flat dense icon="add" @click="increaseQuantity(item)" />
+                    <q-btn flat dense icon="delete" color="negative" @click="removeFromCart(item)" />
+                  </div>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-scroll-area>
+
+          <!-- Order Summary -->
+          <div class="order-summary q-mt-md">
+            <div class="row justify-between q-mb-sm">
+              <div>Subtotal:</div>
+              <div>${{ subtotal.toFixed(2) }}</div>
+            </div>
+            <template v-if="businessTaxes.length">
+              <div v-for="tax in businessTaxes" :key="tax.id" class="row justify-between q-mb-sm">
+                <div>{{ tax.name }} ({{ tax.rate }}%):</div>
+                <div>${{ ((subtotal * tax.rate) / 100).toFixed(2) }}</div>
+              </div>
+            </template>
+            <q-separator class="q-my-md" />
+            <div class="row justify-between text-h6">
+              <div>Total:</div>
+              <div>${{ total.toFixed(2) }}</div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="row q-col-gutter-md q-mt-md">
+            <div class="col-6">
+              <q-btn
+                label="Clear"
+                color="negative"
+                class="full-width"
+                @click="clearCart"
+              />
+            </div>
+            <div class="col-6">
+              <q-btn
+                label="Checkout"
+                color="primary"
+                class="full-width"
+                :disable="cart.length === 0"
+                :loading="loading"
+                @click="checkout"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Method Dialog -->
+      <q-dialog v-model="showPaymentDialog" persistent>
+        <q-card style="min-width: 350px">
+          <q-card-section class="row items-center">
+            <div class="text-h6">Payment Details</div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup />
+          </q-card-section>
+
+          <q-card-section>
+            <div class="row q-col-gutter-md">
+              <!-- Sale Number -->
+              <div class="col-12">
+                <q-input
+                  v-model="saleNumber"
+                  label="Sale Number"
+                  outlined
+                  readonly
+                />
+              </div>
+
+              <!-- Payment Method Selection -->
+              <div class="col-12">
+                <q-select
+                  v-model="selectedPaymentMethod"
+                  :options="paymentOptions"
+                  label="Payment Method"
+                  outlined
+                  emit-value
+                  map-options
+                >
+                  <template v-slot:option="scope">
+                    <q-item v-bind="scope.itemProps">
+                      <q-item-section avatar>
+                        <q-icon :name="scope.opt.icon" />
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label>{{ scope.opt.label }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                </q-select>
+              </div>
+
+              <!-- Cash Payment Section -->
+              <template v-if="selectedPaymentMethod === PAYMENT_METHODS.CASH">
+                <div class="col-12">
+                  <q-input
+                    v-model.number="paymentAmount"
+                    type="number"
+                    label="Amount Received"
+                    outlined
+                    :rules="[val => val >= total || 'Amount must be greater than total']"
+                    @update:model-value="updatePaymentAmount"
+                  />
+                </div>
+                <div class="col-12">
+                  <q-input
+                    v-model.number="changeAmount"
+                    type="number"
+                    label="Change"
+                    outlined
+                    readonly
+                  />
+                </div>
+              </template>
+
+              <!-- Credit Card Section -->
+              <template v-if="selectedPaymentMethod === PAYMENT_METHODS.CREDIT_CARD">
+                <div class="col-12">
+                  <q-input
+                    v-model="cardNumber"
+                    label="Card Number"
+                    outlined
+                    mask="#### #### #### ####"
+                  />
+                </div>
+                <div class="col-6">
+                  <q-input
+                    v-model="expiryDate"
+                    label="Expiry Date"
+                    outlined
+                    mask="##/##"
+                  />
+                </div>
+                <div class="col-6">
+                  <q-input
+                    v-model="cvv"
+                    label="CVV"
+                    outlined
+                    mask="###"
+                    type="password"
+                  />
+                </div>
+              </template>
+
+              <!-- Ghana Payment Section -->
+              <template v-if="selectedPaymentMethod === PAYMENT_METHODS.GHANA_PAYMENT">
+                <div class="col-12">
+                  <q-select
+                    v-model="ghanaPaymentMethod"
+                    :options="ghanaPaymentOptions"
+                    label="Select Payment Method"
+                    outlined
+                  />
+                </div>
+                <div class="col-12">
+                  <q-input
+                    v-model="mobileNumber"
+                    label="Mobile Number"
+                    outlined
+                    mask="### ### ####"
+                  />
+                </div>
+              </template>
+            </div>
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="negative" v-close-popup />
+            <q-btn
+              flat
+              label="Process Payment"
+              color="primary"
+              :loading="loading"
+              :disable="!selectedPaymentMethod || (selectedPaymentMethod === PAYMENT_METHODS.CASH && paymentAmount < total)"
+              @click="processPayment"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <!-- New Customer Dialog -->
+      <q-dialog v-model="showNewCustomerDialog" persistent>
+        <q-card style="min-width: 350px">
+          <q-card-section class="row items-center">
+            <div class="text-h6">New Customer</div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup />
+          </q-card-section>
+
+          <q-card-section>
+            <div class="row q-col-gutter-md">
+              <div class="col-12">
+                <q-input
+                  v-model="newCustomer.name"
+                  label="Name"
+                  outlined
+                  :rules="[val => !!val || 'Name is required']"
+                />
+              </div>
+              <div class="col-12">
+                <q-input
+                  v-model="newCustomer.email"
+                  label="Email"
+                  type="email"
+                  outlined
+                  :rules="[
+                    val => !!val || 'Email is required',
+                    val => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) || 'Invalid email format'
+                  ]"
+                />
+              </div>
+              <div class="col-12">
+                <q-input
+                  v-model="newCustomer.phone"
+                  label="Phone"
+                  outlined
+                  mask="### ### ####"
+                  :rules="[val => !!val || 'Phone is required']"
+                />
+              </div>
+              <div class="col-12">
+                <q-input
+                  v-model="newCustomer.address"
+                  label="Address"
+                  type="textarea"
+                  outlined
+                  rows="2"
+                />
+              </div>
+            </div>
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="negative" v-close-popup />
+            <q-btn
+              flat
+              label="Create Customer"
+              color="primary"
+              :loading="loading"
+              :disable="!newCustomer.name || !newCustomer.email || !newCustomer.phone"
+              @click="createNewCustomer"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+    </div>
+    <div v-else class="q-pa-md text-center">
+      <q-banner class="bg-negative text-white">
+        <template v-slot:avatar>
+          <q-icon name="warning" />
+        </template>
+        You need to open a shift before making sales
+      </q-banner>
+    </div>
   </q-page>
 </template>
 
@@ -385,6 +399,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRoute } from 'vue-router'
 import { posService } from '../../services/pos.service'
+import ShiftManager from 'components/ShiftManager.vue'
 
 const $q = useQuasar()
 const route = useRoute()
@@ -434,6 +449,9 @@ const newCustomer = ref({
   address: ''
 })
 
+// Add tax state
+const businessTaxes = ref([])
+
 // Computed
 const filteredProducts = computed(() => {
   return products.value.filter(product => {
@@ -447,7 +465,21 @@ const subtotal = computed(() => {
   return Number(cart.value.reduce((total, item) => total + (item.price * item.quantity), 0).toFixed(2))
 })
 
-const tax = computed(() => Number((subtotal.value * 0.1).toFixed(2)))
+const tax = computed(() => {
+  if (!businessTaxes.value.length) return 0
+
+  let totalTax = 0
+  let currentSubtotal = subtotal.value
+
+  // Apply taxes in order
+  businessTaxes.value.forEach(tax => {
+    const taxAmount = (currentSubtotal * tax.rate) / 100
+    totalTax += taxAmount
+    currentSubtotal += taxAmount // Add tax to subtotal for next tax calculation
+  })
+
+  return Number(totalTax.toFixed(2))
+})
 
 const total = computed(() => Number((subtotal.value + tax.value).toFixed(2)))
 
@@ -556,8 +588,14 @@ const processPayment = async () => {
         unit_price: Number(item.price.toFixed(2))
       })),
       subtotal: Number(subtotal.value.toFixed(2)),
-      tax: Number(tax.value.toFixed(2)),
-      total: Number(total.value.toFixed(2)),
+      tax_amount: Number(tax.value.toFixed(2)),
+      tax_details: businessTaxes.value.map(tax => ({
+        tax_id: tax.id,
+        name: tax.name,
+        rate: tax.rate,
+        amount: Number(((subtotal.value * tax.rate) / 100).toFixed(2))
+      })),
+      final_amount: Number(total.value.toFixed(2)),
       payment_method: selectedPaymentMethod.value,
       payment_amount: Number(paymentAmount.value.toFixed(2)),
       change_amount: Number(changeAmount.value.toFixed(2)),
@@ -709,6 +747,21 @@ const updatePaymentAmount = (val) => {
   changeAmount.value = Number((val - total.value).toFixed(2))
 }
 
+// Add method to load business taxes
+const loadBusinessTaxes = async () => {
+  try {
+    const response = await posService.getBusinessTaxes(businessId.value, branchId.value)
+    businessTaxes.value = response.taxes || []
+  } catch (error) {
+    console.error('Error loading business taxes:', error)
+    $q.notify({
+      color: 'negative',
+      message: 'Failed to load business taxes',
+      icon: 'error'
+    })
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   if (!businessId.value || !branchId.value) {
@@ -721,7 +774,14 @@ onMounted(() => {
   }
   loadProducts()
   loadCustomers()
+  loadBusinessTaxes()
 })
+
+const hasOpenShift = ref(false)
+
+const onShiftStatusChanged = (status) => {
+  hasOpenShift.value = status
+}
 </script>
 
 <style lang="scss" scoped>

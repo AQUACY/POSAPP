@@ -54,6 +54,12 @@ export const posService = {
     return response.data
   },
 
+  // Get business taxes
+  async getBusinessTaxes(businessId, branchId) {
+    const response = await api.get(`/branch/${businessId}/${branchId}/cashier/taxes`)
+    return response.data
+  },
+
   // Refund methods
   async processRefund(businessId, branchId, data) {
     return await api.post(`/branch/${businessId}/${branchId}/cashier/refunds`, data)

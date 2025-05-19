@@ -39,7 +39,7 @@ export function setupRouter(router) {
     const isAuthenticated = authService.isAuthenticated()
     
     if (to.meta.requiresAuth && !isAuthenticated) {
-      next('/login')
+      next('/auth/login')
     } else if (to.meta.guest && isAuthenticated) {
       next('/')
     } else {

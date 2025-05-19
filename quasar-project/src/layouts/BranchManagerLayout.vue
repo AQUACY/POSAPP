@@ -66,6 +66,18 @@
         <q-item
           clickable
           v-ripple
+          :to="{ name: 'branch-warehouse-inventory' }"
+          exact
+        >
+          <q-item-section avatar>
+            <q-icon name="warehouse" />
+          </q-item-section>
+          <q-item-section>Warehouse Inventory</q-item-section>
+        </q-item>
+
+        <q-item
+          clickable
+          v-ripple
           :to="{ name: 'branch-stock-requests' }"
           exact
         >
@@ -106,6 +118,11 @@ export default {
         title: 'Inventory',
         icon: 'inventory_2',
         link: '/inventory'
+      },
+      {
+        title: 'Warehouse Inventory',
+        icon: 'warehouse',
+        link: '/warehouse-inventory'
       },
       {
         title: 'Sales',

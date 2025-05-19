@@ -73,6 +73,23 @@ export const useBranchManagerStore = defineStore('branchManager', {
       }
     },
 
+    async fetchWarehouseInventory(businessId, branchId, params = {}) {
+      this.loading = true
+      try {
+        const response = await branchManagerService.getWarehouseInventory(businessId, branchId, params)
+        this.warehouseInventory = response.data
+        if (response.data?.data) {
+          this.warehouseInventory.total = response.data.data.length
+        }
+      } catch (error) {
+        this.error = error.message
+        this.warehouseInventory = { data: [], total: 0 }
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
     async createInventory(businessId, branchId, data) {
       this.loading = true
       try {
@@ -255,19 +272,5 @@ export const useBranchManagerStore = defineStore('branchManager', {
         this.loading = false
       }
     },
-
-    async fetchWarehouseInventory(businessId, branchId, warehouseId) {
-      this.loading = true
-      try {
-        const response = await branchManagerService.getWarehouseInventory(businessId, branchId, warehouseId)
-        this.warehouseInventory = response.data
-        return response.data
-      } catch (error) {
-        this.error = error.message
-        throw error
-      } finally {
-        this.loading = false
-      }
-    }
   }
 })

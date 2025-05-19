@@ -18,6 +18,8 @@ use App\Http\Controllers\Cashier\CashierController;
 use App\Http\Controllers\RefundController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Api\OnboardingController;
+use App\Http\Controllers\TaxController;
+use App\Http\Controllers\ShiftController;
 
 
 
@@ -117,6 +119,7 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/admin/inventory/{id}', [AdminController::class, 'getInventory']);
         Route::get('/business/{businessId}/branch/{branchId}/inventory', [AdminController::class, 'listInventoryofBranch']);
         Route::get('/business/{businessId}/inventory', [AdminController::class, 'listInventoryofBusiness']);
+        Route::get('/business/{businessId}/warehouse-inventory', [AdminController::class, 'listInventoryofWarehouse']);
         Route::delete('/admin/inventory/{id}', [AdminController::class, 'deleteInventory']);
         Route::put('/admin/inventory/stock/{id}', [AdminController::class, 'updateStock']);
 
@@ -171,6 +174,13 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/admin/stock-requests/{id}', [AdminController::class, 'getStockRequestDetails']);
         Route::post('/admin/stock-requests/{id}/approve', [AdminController::class, 'approveStockRequest']);
         Route::post('/admin/stock-requests/{id}/reject', [AdminController::class, 'rejectStockRequest']);
+
+        // Tax Management
+        Route::get('/admin/{businessId}/taxes', [TaxController::class, 'index']);  
+        Route::post('/admin/{businessId}/taxes', [TaxController::class, 'store']);
+        Route::put('/admin/{businessId}/taxes/{tax}', [TaxController::class, 'update']);
+        Route::delete('/admin/{businessId}/taxes/{tax}', [TaxController::class, 'destroy']);
+        Route::post('/admin/{businessId}/taxes/{tax}/toggle', [TaxController::class, 'toggleStatus']);
     });
 
     // Branch Manager routes
@@ -185,6 +195,7 @@ Route::middleware(['auth:api'])->group(function () {
             // Warehouse Management
             Route::get('/warehouses', [BranchManagerController::class, 'getWarehouse']);
             Route::get('/warehouses/{id}/inventory', [BranchManagerController::class, 'getInventoryofWarehouse']);
+            Route::get('/warehouse-inventory', [BranchManagerController::class, 'getWarehouseInventory']);
             
 
             // Inventory Management
@@ -244,7 +255,7 @@ Route::middleware(['auth:api'])->group(function () {
     });
     
     // Cashier routes
-    Route::middleware([RoleMiddleware::class . ':cashier'])->group(function () {
+    Route::middleware([RoleMiddleware::class . ':cashier,branch_manager,admin'])->group(function () {
         Route::prefix('branch/{businessId}/{branchId}')->group(function () {
             Route::get('/dashboard', [CashierController::class, 'dashboard']);
             Route::get('/sales', [CashierController::class, 'sales']);
@@ -261,6 +272,15 @@ Route::middleware(['auth:api'])->group(function () {
             Route::get('cashier/refunds', [RefundController::class, 'index']);
             Route::post('cashier/refunds', [RefundController::class, 'store']);
             Route::get('cashier/refunds/{id}', [RefundController::class, 'show']);
+
+            // Tax Management
+            Route::get('/cashier/taxes', [TaxController::class, 'index']);
+
+            // Shift Management
+            Route::get('/shifts/current', [ShiftController::class, 'getCurrentShift']);
+            Route::post('/shifts/open', [ShiftController::class, 'openShift']);
+            Route::post('/shifts/close', [ShiftController::class, 'closeShift']);
+            Route::get('/shifts/history', [ShiftController::class, 'getShiftHistory']);
         });
     });
 
@@ -277,6 +297,12 @@ Route::prefix('sync')->group(function () {
     Route::post('/', [App\Http\Controllers\Api\SyncController::class, 'sync']);
     Route::get('/pending', [App\Http\Controllers\Api\SyncController::class, 'getPendingSync']);
     Route::post('/mark-synced', [App\Http\Controllers\Api\SyncController::class, 'markAsSynced']);
+});
+
+
+// Shift Management Routes
+Route::middleware(['auth:sanctum'])->group(function () {
+   
 });
 
 

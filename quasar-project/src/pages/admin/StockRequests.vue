@@ -83,7 +83,7 @@
             round
             color="positive"
             icon="check"
-            @click="approveRequest(props.row)"
+            @click="openApprovalDialog(props.row)"
           >
             <q-tooltip>Approve</q-tooltip>
           </q-btn>
@@ -180,7 +180,7 @@
             v-if="selectedRequest.status === 'pending'"
             color="positive"
             label="Approve"
-            @click="approveRequest(selectedRequest)"
+            @click="openApprovalDialog(selectedRequest)"
           />
           <q-btn
             v-if="selectedRequest.status === 'pending'"
@@ -220,6 +220,46 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Approval Dialog -->
+    <q-dialog v-model="approvalDialog" persistent>
+      <q-card style="min-width: 500px">
+        <q-card-section>
+          <div class="text-h6">Approve Stock Request</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-form @submit="onApproveSubmit" class="q-gutter-md">
+            <div v-for="(item, index) in selectedRequest?.items" :key="index" class="q-mb-md">
+              <div class="text-subtitle2">{{ item.inventory.name }}</div>
+              <div class="row q-col-gutter-md">
+                <div class="col-12">
+                  <q-radio v-model="item.action" val="merge" label="Merge with existing inventory" />
+                  <q-radio v-model="item.action" val="new" label="Create new inventory item" />
+                </div>
+                
+                <div v-if="item.action === 'merge'" class="col-12">
+                  <q-select
+                    v-model="item.target_inventory_id"
+                    :options="getBranchInventoryOptions(item.inventory.name)"
+                    label="Select existing inventory"
+                    outlined
+                    emit-value
+                    map-options
+                    :rules="[val => item.action !== 'merge' || !!val || 'Please select an inventory item']"
+                  />
+                </div>
+              </div>
+            </div>
+          </q-form>
+        </q-card-section>
+
+        <q-card-actions align="right" class="text-primary">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn flat label="Approve" @click="onApproveSubmit" :loading="approving" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -243,11 +283,12 @@ export default defineComponent({
     const rejectDialog = ref(false)
     const rejectReason = ref('')
     const requestToReject = ref(null)
+    const approvalDialog = ref(false)
+    const approving = ref(false)
+    const branchInventory = ref([])
 
     // Ensure route parameters are properly typed
     const businessId = parseInt(route.params.businessId)
-    const branchId = parseInt(route.params.branchId)
-    const warehouseId = parseInt(route.params.warehouseId)
 
     const filters = ref({
       status: null,
@@ -272,10 +313,10 @@ export default defineComponent({
     ]
 
     const itemColumns = [
-      { name: 'name', label: 'Item', field: 'name', align: 'left' },
+      { name: 'name', label: 'Item', field: row => row.inventory?.name || 'N/A', align: 'left' },
       { name: 'quantity_requested', label: 'Requested Quantity', field: 'quantity_requested', align: 'center' },
       { name: 'available_quantity', label: 'Available Quantity', field: 'available_quantity', align: 'center' },
-      { name: 'unit', label: 'Unit', field: 'unit', align: 'center' },
+      { name: 'unit', label: 'Unit', field: row => row.inventory?.unit || 'N/A', align: 'center' },
       { name: 'notes', label: 'Notes', field: 'notes', align: 'left' }
     ]
 
@@ -324,26 +365,95 @@ export default defineComponent({
       }
     }
 
-    const viewRequest = (request) => {
-      selectedRequest.value = request
-      detailsDialog.value = true
-    }
-
-    const approveRequest = async (request) => {
+    const viewRequest = async (request) => {
       try {
-        await api.post(`/admin/stock-requests/${request.id}/approve`)
-        $q.notify({
-          color: 'positive',
-          message: 'Request approved successfully'
-        })
-        loadRequests()
-        detailsDialog.value = false
+        // Load full request details including inventory information
+        const response = await api.get(`/admin/stock-requests/${request.id}`)
+        selectedRequest.value = response.data
+        detailsDialog.value = true
       } catch (error) {
-        console.error('Error approving request:', error)
+        console.error('Error loading request details:', error)
         $q.notify({
           color: 'negative',
-          message: 'Failed to approve request'
+          message: 'Failed to load request details'
         })
+      }
+    }
+
+    const openApprovalDialog = async (request) => {
+      selectedRequest.value = {
+        ...request,
+        items: request.items.map(item => ({
+          ...item,
+          action: 'new',
+          target_inventory_id: null
+        }))
+      }
+      
+      // Load branch inventory for merging options
+      try {
+        const response = await api.get(`/business/${businessId}/branch/${request.branch_id}/inventory`)
+        branchInventory.value = response.data
+      } catch (error) {
+        console.error('Error loading branch inventory:', error)
+        $q.notify({
+          color: 'negative',
+          message: 'Failed to load branch inventory'
+        })
+      }
+      
+      approvalDialog.value = true
+    }
+
+    const getBranchInventoryOptions = (name) => {
+      if (!name || !branchInventory.value) return []
+      
+      return branchInventory.value
+        .filter(item => item && item.name && item.name.toLowerCase() === name.toLowerCase())
+        .map(item => ({
+          label: `${item.name} (SKU: ${item.sku || 'N/A'})`,
+          value: item.id
+        }))
+    }
+
+    const onApproveSubmit = async () => {
+      if (!selectedRequest.value) return
+
+      approving.value = true
+      try {
+        // Process each item in the request
+        for (const item of selectedRequest.value.items) {
+          const payload = {
+            action: item.action
+          }
+          
+          // Only include target_inventory_id if action is merge
+          if (item.action === 'merge' && item.target_inventory_id) {
+            payload.target_inventory_id = item.target_inventory_id
+          }
+
+          const response = await api.post(`/admin/stock-requests/${selectedRequest.value.id}/approve`, payload)
+          
+          if (response.data.status === 'error') {
+            throw new Error(response.data.message || 'Failed to approve stock request')
+          }
+        }
+
+        $q.notify({
+          color: 'positive',
+          message: 'Stock request approved successfully'
+        })
+
+        approvalDialog.value = false
+        loadRequests() // Refresh the list
+      } catch (error) {
+        console.error('Error approving stock request:', error)
+        $q.notify({
+          color: 'negative',
+          message: error.response?.data?.message || error.message || 'Failed to approve stock request'
+        })
+      } finally {
+        approving.value = false
       }
     }
 
@@ -409,12 +519,17 @@ export default defineComponent({
       rejectDialog,
       rejectReason,
       viewRequest,
-      approveRequest,
+      openApprovalDialog,
       rejectRequest,
       confirmReject,
       getStatusColor,
       onRequest,
-      loadRequests
+      loadRequests,
+      approvalDialog,
+      approving,
+      branchInventory,
+      getBranchInventoryOptions,
+      onApproveSubmit
     }
   }
 })

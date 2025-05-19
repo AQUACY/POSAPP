@@ -18,6 +18,8 @@ const routes = [
       { path: '', redirect: to => `/business/${to.params.businessId}/dashboard` },
       { path: 'dashboard', component: () => import('pages/admin/Dashboard.vue') },
       { path: 'branches', component: () => import('pages/admin/Branches.vue') },
+      { path: 'shifts', component: () => import('pages/ShiftManagement.vue') },
+      { path: 'taxes', component: () => import('pages/admin/Taxes.vue') },
       { path: 'branch/:branchId/inventory', component: () => import('pages/admin/BranchInventory.vue') },
       { path: 'branch/:branchId/staff', component: () => import('pages/admin/BranchStaff.vue') },
       { path: 'warehouse/:warehouseId/stock-requests', component: () => import('pages/admin/StockRequests.vue') },
@@ -46,8 +48,16 @@ const routes = [
         component: () => import('pages/branch-manager/Dashboard.vue')
       },
       {
+        path: 'shifts',
+        component: () => import('pages/ShiftManagement.vue')
+      },
+      {
         path: 'inventory',
         component: () => import('pages/branch-manager/Inventory.vue')
+      },  
+      {
+        path: 'warehouse-inventory',
+        component: () => import('pages/branch-manager/WareHouseInventory.vue')
       },
       {
         path: 'sales',
@@ -165,6 +175,20 @@ const routes = [
   {
     path: '/onboarding',
     component: () => import('pages/onboarding/OnboardingPage.vue')
+  },
+
+  // Shift Management
+  {
+    path: '/branch/:businessId/:branchId/shifts',
+    component: () => import('layouts/MainLayout.vue'),
+    meta: { requiresAuth: true, roles: ['admin', 'branch_manager'] },
+    children: [
+      {
+        path: '/shifts',
+        name: 'shift-management',
+        component: () => import('pages/ShiftManagement.vue')
+      }
+    ]
   },
 
   // 404

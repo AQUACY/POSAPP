@@ -94,7 +94,6 @@ class SaleController extends BaseController
 
             $totalAmount = 0;
             $totalDiscount = 0;
-            $totalTax = 0;
 
             foreach ($request->items as $item) {
                 $inventory = Inventory::where('branch_id', $user->branch_id)
@@ -107,7 +106,6 @@ class SaleController extends BaseController
                 $unitPrice = round($inventory->unit_price, 2);
                 $quantity = $item['quantity'];
                 $discount = 0;
-                $tax = round(($unitPrice - $discount) * 0.1, 2);
                 $itemTotal = round(($unitPrice - $discount) * $quantity, 2);
 
                 SaleItem::create([
@@ -116,7 +114,7 @@ class SaleController extends BaseController
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
                     'discount_amount' => $discount,
-                    'tax_amount' => $tax,
+                    'tax_amount' => 0, // Tax will be calculated at the sale level
                     'total_amount' => $itemTotal,
                 ]);
 
@@ -124,23 +122,26 @@ class SaleController extends BaseController
 
                 $totalAmount += $itemTotal;
                 $totalDiscount += $discount;
-                $totalTax += $tax;
             }
 
-            // Round all totals to 2 decimal places
-            $totalAmount = round($totalAmount, 2);
-            $totalDiscount = round($totalDiscount, 2);
-            $totalTax = round($totalTax, 2);
-            $finalAmount = round($totalAmount - $totalDiscount + $totalTax, 2);
-
+            // Update sale with initial totals
             $sale->update([
                 'total_amount' => $totalAmount,
                 'discount_amount' => $totalDiscount,
-                'tax_amount' => $totalTax,
+            ]);
+
+            // Calculate taxes using the Sale model's method
+            $sale->calculateTaxes();
+
+            // Calculate final amount including taxes
+            $finalAmount = round($totalAmount - $totalDiscount + $sale->tax_amount, 2);
+
+            // Update sale with final amounts
+            $sale->update([
                 'final_amount' => $finalAmount,
             ]);
 
-            // Create initial payment record with rounded amount
+            // Create initial payment record
             Payment::create([
                 'sale_id' => $sale->id,
                 'amount' => $finalAmount,
@@ -152,18 +153,9 @@ class SaleController extends BaseController
             DB::commit();
 
             // Load the sale with its relationships and return it
-            $sale = $sale->load('items.inventory', 'customer', 'payments');
+            $sale = $sale->fresh(['items.inventory', 'customer', 'payments']);
             
-            return $this->sendResponse([
-                'id' => $sale->id,
-                'sale_number' => $sale->sale_number,
-                'final_amount' => $sale->final_amount,
-                'payment_url' => $sale->payment_url,
-                'status' => $sale->status,
-                'items' => $sale->items,
-                'customer' => $sale->customer,
-                'payments' => $sale->payments
-            ], 'Sale created successfully');
+            return $this->sendResponse($sale, 'Sale created successfully');
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->sendError('Error creating sale', $e->getMessage(), 500);

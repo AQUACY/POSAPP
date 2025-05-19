@@ -2,9 +2,62 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { api } from 'boot/axios'
 
+function isCordova() {
+  return typeof window !== 'undefined' && window.cordova;
+}
+
+// Secure Storage helpers
+async function setTokenSecure(token) {
+  if (isCordova() && window.SecureStorage) {
+    return new Promise((resolve) => {
+      const ss = new window.SecureStorage(
+        () => {
+          ss.set(() => resolve(), () => resolve(), 'token', token)
+        },
+        () => resolve(),
+        'POSAPP'
+      )
+    })
+  } else {
+    localStorage.setItem('token', token)
+  }
+}
+
+async function getTokenSecure() {
+  if (isCordova() && window.SecureStorage) {
+    return new Promise((resolve) => {
+      const ss = new window.SecureStorage(
+        () => {
+          ss.get((value) => resolve(value), () => resolve(null), 'token')
+        },
+        () => resolve(null),
+        'POSAPP'
+      )
+    })
+  } else {
+    return localStorage.getItem('token')
+  }
+}
+
+async function removeTokenSecure() {
+  if (isCordova() && window.SecureStorage) {
+    return new Promise((resolve) => {
+      const ss = new window.SecureStorage(
+        () => {
+          ss.remove(() => resolve(), () => resolve(), 'token')
+        },
+        () => resolve(),
+        'POSAPP'
+      )
+    })
+  } else {
+    localStorage.removeItem('token')
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
-  const token = ref(localStorage.getItem('token') || null)
+  const token = ref(null)
   const loading = ref(false)
 
   const isAuthenticated = computed(() => !!token.value)
@@ -14,13 +67,13 @@ export const useAuthStore = defineStore('auth', () => {
   const isInventoryManager = computed(() => user.value?.role === 'inventory_clerk')
   const isBranchManager = computed(() => user.value?.role === 'branch_manager')
 
-  const setToken = (newToken) => {
+  const setToken = async (newToken) => {
     token.value = newToken
     if (newToken) {
-      localStorage.setItem('token', newToken)
+      await setTokenSecure(newToken)
       api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
     } else {
-      localStorage.removeItem('token')
+      await removeTokenSecure()
       delete api.defaults.headers.common['Authorization']
     }
   }
@@ -35,14 +88,11 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await api.post('/auth/login', { email, password })
       const { token: newToken } = response.data.data
       const userData = response.data.data.user
-      
-      setToken(newToken)
+      await setToken(newToken)
       setUser(userData)
-      
       if (!userData || !userData.role) {
         throw new Error('Invalid user data received')
       }
-      
       return userData
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Login failed')
@@ -57,9 +107,8 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await api.post('/auth/register', userData)
       const token = response.data.token
       const user = response.data.user
-      setToken(token)
+      await setToken(token)
       setUser(user)
-      
       return user
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Registration failed')
@@ -74,29 +123,22 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
-      setToken(null)
+      await setToken(null)
       setUser(null)
     }
   }
 
   const getRedirectPath = () => {
     if (!isAuthenticated.value) return '/auth/login'
-    
     const businessId = user.value?.business_id
     const branchId = user.value?.branch_id
-    
-    // Super admin doesn't need business ID check
     if (user.value?.role === 'super_admin') {
       return '/super-admin/dashboard'
     }
-    
-    // For other roles, business ID is required
     if (!businessId) {
       console.error('No business ID found for user')
       return '/auth/login'
     }
-    
-    // Get the base path for each role
     const basePath = (() => {
       switch (user.value?.role) {
         case 'admin':
@@ -111,15 +153,13 @@ export const useAuthStore = defineStore('auth', () => {
           return '/auth/login'
       }
     })()
-
-    // Add the default page for each role
     switch (user.value?.role) {
       case 'admin':
         return `${basePath}/dashboard`
       case 'cashier':
-        return basePath // Cashier only has one page
+        return basePath
       case 'inventory_clerk':
-        return basePath // Default to inventory page
+        return basePath
       case 'branch_manager':
         return `${basePath}/dashboard`
       default:
@@ -127,12 +167,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Initialize auth state from localStorage
+  // Initialize auth state from storage
   const initializeAuth = async () => {
-    const storedToken = localStorage.getItem('token')
+    const storedToken = await getTokenSecure()
     if (storedToken) {
-      setToken(storedToken)
-      // Fetch user data if token exists
+      await setToken(storedToken)
       await fetchUserData()
     }
   }
@@ -143,15 +182,13 @@ export const useAuthStore = defineStore('auth', () => {
       setUser(response.data.data)
     } catch (error) {
       console.error('Failed to fetch user data:', error)
-      setToken(null)
+      await setToken(null)
       setUser(null)
     }
   }
 
-  // Check authentication status
   const checkAuth = async () => {
     if (!token.value) return false
-    
     try {
       loading.value = true
       const response = await api.get('/auth/profile')
@@ -159,7 +196,7 @@ export const useAuthStore = defineStore('auth', () => {
       return true
     } catch (error) {
       console.error('Auth check failed:', error)
-      setToken(null)
+      await setToken(null)
       setUser(null)
       return false
     } finally {

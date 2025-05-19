@@ -1,20 +1,54 @@
 import { boot } from 'quasar/wrappers'
 import axios from 'axios'
 
-// Be careful when using SSR for cross-request state pollution
-// due to creating a Singleton instance here;
-// If any client changes this (global) instance, it might be a
-// good idea to move this instance creation inside of the
-// "export default () => {}" function below (which runs individually
-// for each client)
+// Helper to detect Cordova
+function isCordova() {
+  return typeof window !== 'undefined' && window.cordova;
+}
+
+// Dynamic API base URL
+const API_BASE = isCordova()
+  ? 'http://localhost:8000/api' // <-- Change to your production API or LAN IP for dev
+  : process.env.API_BASE_URL || 'http://localhost:8000/api';
+
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: API_BASE,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   }
 })
+
+// Secure token getter for Cordova or web
+async function getToken() {
+  if (isCordova() && window.SecureStorage) {
+    return new Promise((resolve) => {
+      const ss = new window.SecureStorage(
+        () => {
+          ss.get(
+            (value) => resolve(value),
+            () => resolve(null),
+            'token'
+          )
+        },
+        () => resolve(null),
+        'POSAPP'
+      )
+    })
+  } else {
+    return localStorage.getItem('token')
+  }
+}
+
+// Request interceptor for token
+api.interceptors.request.use(async (config) => {
+  const token = await getToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+}, (error) => Promise.reject(error))
 
 export default boot(({ app }) => {
   // for use inside Vue files (Options API) through this.$axios and this.$api

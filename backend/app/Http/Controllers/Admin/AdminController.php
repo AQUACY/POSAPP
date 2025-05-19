@@ -279,6 +279,16 @@ class AdminController extends Controller
         ]);
     }
 
+    public function listInventoryofWarehouse(Request $request)
+    {
+        $businessId = $request->route('businessId');
+        $inventory = Inventory::with(['category', 'business', 'branch'])
+            ->where('business_id', $businessId)
+            ->whereNotNull('warehouse_id')
+            ->get();
+        return response()->json(InventoryResource::collection($inventory));
+    }
+
     public function deleteInventory($id)
     {
         $inventory = Inventory::findOrFail($id);
@@ -685,26 +695,185 @@ class AdminController extends Controller
     // Stock Request Management
     public function getStockRequests()
     {
-        $stockRequests = StockRequest::with(['branch', 'warehouse', 'items', 'requestedBy'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $stockRequests = StockRequest::with([
+            'branch', 
+            'warehouse', 
+            'items', 
+            'requestedBy',
+            'items.inventory' => function($query) {
+                $query->where('warehouse_id', '!=', null);
+            }
+        ])
+        ->orderBy('created_at', 'desc')
+        ->get();
 
         return response()->json($stockRequests);
     }
 
     public function getStockRequestDetails($id)
     {
-        $stockRequest = StockRequest::with(['branch', 'warehouse', 'items', 'requestedBy'])->findOrFail($id);   
+        $stockRequest = StockRequest::with([
+            'branch', 
+            'warehouse', 
+            'items.inventory', 
+            'requestedBy'
+        ])->findOrFail($id);   
         return response()->json($stockRequest);
     }
 
-    public function approveStockRequest($id)
+    public function approveStockRequest(Request $request, $id)
     {
-        $stockRequest = StockRequest::findOrFail($id);
-        $stockRequest->status = 'approved';
-        $stockRequest->save();
+        $validator = Validator::make($request->all(), [
+            'action' => 'required|in:merge,new',
+            'target_inventory_id' => 'required_if:action,merge|exists:inventories,id'
+        ]);
 
-        return response()->json($stockRequest);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $stockRequest = StockRequest::with([
+                'items.inventory' => function($query) {
+                    $query->where('warehouse_id', '!=', null);
+                }, 
+                'branch', 
+                'warehouse'
+            ])->findOrFail($id);
+
+            if ($stockRequest->status !== 'pending') {
+                throw new \Exception('Stock request is not in pending status');
+            }
+
+            // Validate target inventory belongs to the correct branch if merging
+            if ($request->action === 'merge' && $request->target_inventory_id) {
+                $targetInventory = Inventory::findOrFail($request->target_inventory_id);
+                if ($targetInventory->branch_id !== $stockRequest->branch_id) {
+                    throw new \Exception('Target inventory does not belong to the requesting branch');
+                }
+            }
+
+            foreach ($stockRequest->items as $item) {
+                $warehouseInventory = $item->inventory;
+                
+                // Check if warehouse has sufficient stock
+                if ($warehouseInventory->quantity < $item->quantity_requested) {
+                    throw new \Exception("Insufficient stock in warehouse for item: {$warehouseInventory->name} (Available: {$warehouseInventory->quantity}, Requested: {$item->quantity_requested})");
+                }
+
+                try {
+                    // Debit warehouse inventory
+                    $warehouseInventory->quantity -= $item->quantity_requested;
+                    $warehouseInventory->save();
+
+                    // Record stock change for warehouse
+                    StockChange::create([
+                        'inventory_id' => $warehouseInventory->id,
+                        'user_id' => auth()->id(),
+                        'quantity' => -$item->quantity_requested,
+                        'change_type' => 'reduction',
+                        'reason' => "Stock transfer to branch {$stockRequest->branch->name}",
+                        'business_id' => $stockRequest->business_id,
+                        'branch_id' => $stockRequest->branch_id
+                    ]);
+
+                    if ($request->action === 'merge') {
+                        // Add to existing branch inventory
+                        $branchInventory = Inventory::findOrFail($request->target_inventory_id);
+                        $branchInventory->quantity += $item->quantity_requested;
+                        $branchInventory->save();
+
+                        // Record stock change for branch
+                        StockChange::create([
+                            'inventory_id' => $branchInventory->id,
+                            'user_id' => auth()->id(),
+                            'quantity' => $item->quantity_requested,
+                            'change_type' => 'addition',
+                            'reason' => "Stock transfer from warehouse {$stockRequest->warehouse->name}",
+                            'business_id' => $stockRequest->business_id,
+                            'branch_id' => $stockRequest->branch_id
+                        ]);
+                    } else {
+                        // Create new inventory item in branch
+                        $newInventory = Inventory::create([
+                            'name' => $warehouseInventory->name,
+                            'description' => $warehouseInventory->description,
+                            'sku' => $warehouseInventory->sku . '-' . $stockRequest->branch_id, // Append branch ID to make SKU unique
+                            'barcode' => $warehouseInventory->barcode,
+                            'quantity' => $item->quantity_requested,
+                            'unit_price' => $warehouseInventory->unit_price,
+                            'cost_price' => $warehouseInventory->cost_price,
+                            'reorder_level' => $warehouseInventory->reorder_level,
+                            'category_id' => $warehouseInventory->category_id,
+                            'business_id' => $stockRequest->business_id,
+                            'branch_id' => $stockRequest->branch_id,
+                            'warehouse_id' => null
+                        ]);
+
+                        // Record stock change for new branch inventory
+                        StockChange::create([
+                            'inventory_id' => $newInventory->id,
+                            'user_id' => auth()->id(),
+                            'quantity' => $item->quantity_requested,
+                            'change_type' => 'addition',
+                            'reason' => "Initial stock from warehouse {$stockRequest->warehouse->name}",
+                            'business_id' => $stockRequest->business_id,
+                            'branch_id' => $stockRequest->branch_id
+                        ]);
+                    }
+
+                    // Update stock request item
+                    $item->update([
+                        'quantity_approved' => $item->quantity_requested,
+                        'quantity_fulfilled' => $item->quantity_requested
+                    ]);
+
+                } catch (\Exception $e) {
+                    \Log::error('Stock transfer error', [
+                        'error' => $e->getMessage(),
+                        'item' => $item->toArray(),
+                        'warehouse_inventory' => $warehouseInventory->toArray()
+                    ]);
+                    throw new \Exception("Failed to process stock transfer: " . $e->getMessage());
+                }
+            }
+
+            // Update stock request status
+            $stockRequest->update([
+                'status' => 'fulfilled',
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+                'fulfilled_at' => now()
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Stock request approved and transferred successfully',
+                'data' => $stockRequest->load(['items.inventory', 'branch', 'warehouse', 'approvedBy'])
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Stock request approval error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_id' => $id,
+                'request_data' => $request->all()
+            ]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to approve stock request',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function rejectStockRequest($id)

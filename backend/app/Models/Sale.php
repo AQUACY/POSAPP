@@ -34,6 +34,7 @@ class Sale extends Model
         'total_amount',
         'discount_amount',
         'tax_amount',
+        'tax_details',
         'final_amount',
         'payment_method',
         'payment_status',
@@ -54,6 +55,7 @@ class Sale extends Model
         'discount_amount' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'final_amount' => 'decimal:2',
+        'tax_details' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'last_sync_at' => 'datetime'
@@ -125,9 +127,45 @@ class Sale extends Model
         return $this->items()->sum('quantity');
     }
 
+    public function calculateTaxes()
+    {
+        $business = $this->business;
+        $taxes = Tax::where('business_id', $business->id)
+            ->where('is_active', true)
+            ->orderBy('order')
+            ->get();
+
+        if ($taxes->isEmpty()) {
+            $this->tax_amount = 0;
+            $this->tax_details = null;
+            $this->save();
+            return;
+        }
+
+        $subtotal = $this->getSubtotal();
+        $taxDetails = [];
+        $totalTaxAmount = 0;
+
+        foreach ($taxes as $tax) {
+            $taxAmount = $tax->calculateTaxAmount($subtotal);
+            $totalTaxAmount += $taxAmount;
+
+            $taxDetails[] = [
+                'tax_id' => $tax->id,
+                'name' => $tax->name,
+                'rate' => $tax->rate,
+                'amount' => round($taxAmount, 2)
+            ];
+        }
+
+        $this->tax_amount = round($totalTaxAmount, 2);
+        $this->tax_details = $taxDetails;
+        $this->save();
+    }
+
     public function getSubtotal()
     {
-        return $this->total_amount - $this->tax_amount;
+        return $this->total_amount - $this->discount_amount;
     }
 
     // Scopes

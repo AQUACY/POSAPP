@@ -111,6 +111,9 @@ class CashierController extends Controller
                 $totalTax += $tax;
             }
 
+            // Calculate taxes using the Sale model's method
+            $sale->calculateTaxes();
+
             // Update sale totals
             $sale->update([
                 'total_amount' => $totalAmount,

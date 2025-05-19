@@ -21,6 +21,7 @@ class StockChange extends Model
         'business_id',
         'branch_id',
         'user_id',
+        'status',
         'sync_status',
         'last_sync_at',
         'device_id',

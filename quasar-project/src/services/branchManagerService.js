@@ -51,8 +51,8 @@ export const branchManagerService = {
     return api.get(`/branch/${businessId}/${branchId}/branch_manager/warehouses`)
   },
 
-  getWarehouseInventory(businessId, branchId, warehouseId) {
-    return api.get(`/branch/${businessId}/${branchId}/branch_manager/warehouses/${warehouseId}/inventory`)
+  getWarehouseInventory(businessId, branchId, params = {}) {
+    return api.get(`/branch/${businessId}/${branchId}/branch_manager/warehouse-inventory`, { params })
   },
 
   createStockRequest(businessId, branchId, data) {

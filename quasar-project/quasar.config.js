@@ -15,6 +15,7 @@ export default defineConfig((ctx) => {
     boot: [
       'i18n',
       'axios',
+      'pinia',
       'auth'
     ],
 

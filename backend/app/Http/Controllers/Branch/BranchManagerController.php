@@ -161,9 +161,10 @@ class BranchManagerController extends BaseController
     }
 
     // Get inventory of warehouse
-    public function getInventoryofWarehouse(int $businessId, int $branchId, int $id): JsonResponse
+    public function getInventoryofWarehouse(int $businessId, int $branchId, $id): JsonResponse
     {
-        $inventory = Inventory::where('warehouse_id', $id)
+        $warehouseId = (int) $id;
+        $inventory = Inventory::where('warehouse_id', $warehouseId)
             ->where('business_id', $businessId)
             ->where('branch_id', $branchId)
             ->get();
@@ -171,6 +172,13 @@ class BranchManagerController extends BaseController
         return $this->sendResponse($inventory, 'Inventory of warehouse retrieved successfully');
     }
 
+    public function getWarehouseInventory(int $businessId): JsonResponse
+    {
+        $inventory = Inventory::where('business_id', $businessId)
+            ->get();
+
+        return $this->sendResponse($inventory, 'Inventory of warehouse retrieved successfully');
+    }
     /**
      * Update inventory
      *

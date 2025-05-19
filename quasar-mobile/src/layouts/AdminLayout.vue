@@ -83,6 +83,11 @@ export default {
         link: '/branches'
       },
       {
+        title: 'Taxes',
+        icon: 'tax',
+        link: '/taxes'
+      },
+      {
         title: 'Warehouses',
         icon: 'warehouse',
         link: '/warehouses'
